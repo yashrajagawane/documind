@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "DocuMind — V1 Architecture",
+    "quality_profile": "showcase",
+    "locale": "en",
+    "viewBox": [1200, 820]
+  },
+  "components": [
+    { "id": "user", "type": "external", "label": "User", "sublabel": "browser", "pos": [40, 350], "size": [120, 60] },
+    { "id": "frontend", "type": "frontend", "label": "Next.js frontend", "sublabel": "UI + TanStack Query", "pos": [190, 350], "size": [160, 60] },
+    { "id": "api", "type": "backend", "label": "FastAPI API", "sublabel": "auth + routes + services", "pos": [420, 350], "size": [180, 60] },
+    { "id": "worker", "type": "backend", "label": "Processing executor", "sublabel": "V1 adapter; CPU work off event loop", "pos": [420, 610], "size": [200, 60] },
+    { "id": "postgres", "type": "database", "label": "PostgreSQL", "sublabel": "identity + lifecycle authority", "pos": [720, 120], "size": [180, 60] },
+    { "id": "qdrant", "type": "database", "label": "Qdrant", "sublabel": "derived, filtered vectors", "pos": [720, 350], "size": [180, 60] },
+    { "id": "gemini", "type": "external", "label": "Google Gemini", "sublabel": "grounded generation", "pos": [720, 500], "size": [180, 60] },
+    { "id": "storage", "type": "cloud", "label": "Private storage", "sublabel": "local Compose or S3-compatible", "pos": [720, 680], "size": [180, 60] },
+    { "id": "documentAi", "type": "external", "label": "Document intelligence", "sublabel": "Docling + sentence-transformers", "pos": [980, 610], "size": [190, 60] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "DocuMind application boundary", "wraps": ["frontend", "api", "worker", "postgres", "storage", "qdrant"] },
+    { "kind": "security-group", "label": "Backend trust boundary", "wraps": ["api", "worker", "postgres", "storage", "qdrant"] }
+  ],
+  "connections": [
+    { "id": "user-frontend", "from": "user", "to": "frontend", "label": "HTTPS", "variant": "emphasis", "labelAt": [175, 330] },
+    { "id": "frontend-api", "from": "frontend", "to": "api", "label": "Bearer API requests", "variant": "security", "labelAt": [385, 330] },
+    { "id": "api-postgres", "from": "api", "to": "postgres", "label": "async SQL", "labelAt": [650, 245] },
+    { "id": "api-qdrant", "from": "api", "to": "qdrant", "label": "filtered retrieval", "variant": "security", "labelAt": [600, 450] },
+    { "id": "api-gemini", "from": "api", "to": "gemini", "label": "delimited context", "variant": "security", "labelAt": [660, 465] },
+    { "id": "api-worker", "from": "api", "to": "worker", "label": "accepted job", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelAt": [510, 500] },
+    { "id": "worker-storage", "from": "worker", "to": "storage", "label": "private object", "labelAt": [670, 670] },
+    { "id": "worker-documentAi", "from": "worker", "to": "documentAi", "label": "parse + embed", "labelAt": [805, 590] }
+  ],
+  "cards": [
+    { "dot": "violet", "title": "Trust rules", "items": ["The frontend never receives database, vector, or AI-provider credentials.", "The API derives identity only from verified JWTs and rechecks document ownership."] },
+    { "dot": "emerald", "title": "Data ownership", "items": ["PostgreSQL is authoritative for users, documents, and processing lifecycle.", "Qdrant is derived and rebuildable; raw bytes stay in private storage."] }
+  ]
+}
