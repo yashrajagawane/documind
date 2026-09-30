@@ -5,9 +5,10 @@ Revises:
 Create Date: 2026-10-01
 """
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "20261001_0001"
 down_revision = None
@@ -21,7 +22,12 @@ def upgrade() -> None:
         sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("email", sa.String(length=320), nullable=False),
         sa.Column("hashed_password", sa.String(length=255), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("email"),
     )
@@ -38,10 +44,23 @@ def upgrade() -> None:
         sa.Column("processing_progress", sa.Integer(), nullable=False),
         sa.Column("processing_error", sa.Text(), nullable=True),
         sa.Column("structured_json", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.CheckConstraint("processing_progress >= 0 AND processing_progress <= 100"),
-        sa.CheckConstraint("status IN ('uploaded', 'queued', 'processing', 'extracting', 'chunking', 'embedding', 'indexing', 'ready', 'failed', 'deleting')"),
+        sa.CheckConstraint(
+            "status IN ('uploaded', 'queued', 'processing', 'extracting', 'chunking', "
+            "'embedding', 'indexing', 'ready', 'failed', 'deleting')"
+        ),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="RESTRICT"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("storage_key"),
@@ -56,13 +75,22 @@ def upgrade() -> None:
         sa.Column("status", sa.String(length=32), nullable=False),
         sa.Column("attempt_count", sa.Integer(), nullable=False),
         sa.Column("lease_expires_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.CheckConstraint("attempt_count >= 0"),
-        sa.CheckConstraint("status IN ('queued', 'claimed', 'retryable', 'failed', 'completed', 'cancelled')"),
+        sa.CheckConstraint(
+            "status IN ('queued', 'claimed', 'retryable', 'failed', 'completed', 'cancelled')"
+        ),
         sa.ForeignKeyConstraint(["document_id"], ["documents.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_processing_jobs_document_id", "processing_jobs", ["document_id"], unique=False)
+    op.create_index(
+        "ix_processing_jobs_document_id", "processing_jobs", ["document_id"], unique=False
+    )
     op.create_index("ix_processing_jobs_status", "processing_jobs", ["status"], unique=False)
 
 

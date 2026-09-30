@@ -1,8 +1,7 @@
-from typing import Any
-
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 
 def error_response(request: Request, status_code: int, code: str, message: str) -> JSONResponse:
@@ -20,8 +19,21 @@ def error_response(request: Request, status_code: int, code: str, message: str) 
 
 
 def install_exception_handlers(app: FastAPI) -> None:
+    @app.exception_handler(StarletteHTTPException)
+    async def http_exception_handler(
+        request: Request, exception: StarletteHTTPException
+    ) -> JSONResponse:
+        code = (
+            "NOT_FOUND" if exception.status_code == status.HTTP_404_NOT_FOUND else "HTTP_ERROR"
+        )
+        return error_response(
+            request, exception.status_code, code, "The requested operation failed."
+        )
+
     @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(request: Request, _: RequestValidationError) -> JSONResponse:
+    async def validation_exception_handler(
+        request: Request, _: RequestValidationError
+    ) -> JSONResponse:
         return error_response(
             request,
             status.HTTP_422_UNPROCESSABLE_ENTITY,
