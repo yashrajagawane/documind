@@ -5,7 +5,7 @@ import type { FormEvent } from "react";
 
 import { apiDownload, apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import type { DocumentPreview, DocumentSummary } from "@/lib/types";
+import type { ChatResponse, DocumentPreview, DocumentSummary } from "@/lib/types";
 
 export default function HomePage() {
   const { accessToken, user, isLoading, signIn, register, signOut } = useAuth();
@@ -73,6 +73,9 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState<DocumentPreview | null>(null);
+  const [question, setQuestion] = useState("");
+  const [chat, setChat] = useState<ChatResponse | null>(null);
+  const [asking, setAsking] = useState(false);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -113,9 +116,28 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
     if (!accessToken) return;
     try {
       setPreview(await apiFetch<DocumentPreview>(`/documents/${id}/preview`, {}, accessToken));
+      setChat(null);
       setMessage(null);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Preview is not ready.");
+    }
+  };
+
+  const ask = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!accessToken || !preview || !question.trim()) return;
+    setAsking(true);
+    setMessage(null);
+    try {
+      setChat(await apiFetch<ChatResponse>(`/documents/${preview.id}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: question.trim() }),
+      }, accessToken));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "The question could not be answered.");
+    } finally {
+      setAsking(false);
     }
   };
 
@@ -143,7 +165,7 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
           {documents.map((document) => <li key={document.id}><span><strong>{document.original_name}</strong><small>{document.status}</small></span><span className="document-actions"><button className="link-button" type="button" disabled={document.status !== "ready"} onClick={() => void showPreview(document.id)}>Preview</button><button className="link-button" type="button" onClick={() => void remove(document.id)}>Delete</button></span></li>)}
         </ul>
       )}
-      {preview && <article className="preview-panel" aria-labelledby="preview-heading"><div className="preview-header"><h2 id="preview-heading">{preview.original_name}</h2><span>{preview.metadata.word_count ?? 0} words</span></div><pre>{preview.markdown}</pre><div className="export-actions"><button className="link-button" type="button" onClick={() => void download("markdown")}>Markdown</button><button className="link-button" type="button" onClick={() => void download("json")}>JSON</button><button className="link-button" type="button" onClick={() => void download("html")}>HTML</button></div></article>}
+      {preview && <article className="preview-panel" aria-labelledby="preview-heading"><div className="preview-header"><h2 id="preview-heading">{preview.original_name}</h2><span>{preview.metadata.word_count ?? 0} words</span></div><pre>{preview.markdown}</pre><div className="export-actions"><button className="link-button" type="button" onClick={() => void download("markdown")}>Markdown</button><button className="link-button" type="button" onClick={() => void download("json")}>JSON</button><button className="link-button" type="button" onClick={() => void download("html")}>HTML</button></div><form className="chat-form" onSubmit={ask}><label htmlFor="document-question">Ask about this document</label><textarea id="document-question" rows={3} value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask a question grounded in the document…" /><button className="button" type="submit" disabled={asking || !question.trim()}>{asking ? "Searching…" : "Ask question"}</button></form>{chat && <div className="chat-answer"><p>{chat.answer}</p>{chat.citations.length > 0 && <div className="citation-list"><strong>Sources</strong>{chat.citations.map((citation) => <small key={citation.chunk_id}>{citation.chunk_id}{citation.section ? ` · ${citation.section}` : ""} · score {citation.score.toFixed(2)}</small>)}</div>}</div>}</article>}
     </div>
   );
 }

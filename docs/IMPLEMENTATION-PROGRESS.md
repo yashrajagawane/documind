@@ -1,8 +1,8 @@
 # DocuMind — Implementation Progress
 
-Overall Status: Phase 7 grounded RAG implementation in progress.
-Current Phase: Phase 7 — Grounded RAG and citations
-Current Milestone: Validate retrieval filters and generation behavior with live services
+Overall Status: Phase 9 experience integration in progress.
+Current Phase: Phase 9 — Complete document experience
+Current Milestone: Validate document preview/chat/citations end-to-end with live services
 Last Updated: 2026-10-01
 
 ## Repository status
@@ -31,8 +31,8 @@ Last Updated: 2026-10-01
 | 5 — Understand | [-] | Preview, tables, statistics, export | Parsed content inspectable/exportable |
 | 6 — Index | [-] | Chunking, embeddings, Qdrant | Rebuildable isolated vectors |
 | 7 — Converse | [-] | Grounded RAG and citations | No-evidence/no-injection tests pass |
-| 8 — Frontend foundation | [ ] | Typed app shell, auth, API client | Accessible auth/upload/list baseline |
-| 9 — Experience integration | [ ] | Detail preview/chat/citations | End-to-end UX works |
+| 8 — Frontend foundation | [x] | Typed app shell, auth, API client | Accessible auth/upload/list baseline |
+| 9 — Experience integration | [-] | Detail preview/chat/citations | End-to-end UX works |
 | 10 — Harden/deliver | [ ] | Tests, CI, Docker, security, README | V1 release checklist passes |
 | 11 — Validation | [ ] | Live smoke/recovery/evaluation | Deployment qualification documented |
 | 12 — Reliability/scale | [ ] | Queue, object storage, metrics | V1.2 migration validated |
@@ -59,6 +59,7 @@ Last Updated: 2026-10-01
 - [x] Deterministic section-aware chunking, embedding boundary, stable point IDs, and mandatory Qdrant ownership payloads added.
 - [x] Optional Qdrant/Sentence Transformers dependencies and Compose Qdrant service configured.
 - [x] Grounded prompt builder, mandatory Qdrant retrieval filters, Gemini adapter, no-evidence response, and server-derived citations added.
+- [x] Preview workspace now connects grounded chat responses to citation cards and export actions.
 
 ## In progress
 
@@ -69,6 +70,7 @@ Last Updated: 2026-10-01
 - [-] Verify preview/export responses against real processed documents and table-bearing artifacts.
 - [-] Run live embedding generation and Qdrant upsert/query/rebuild tests with mandatory security filters.
 - [-] Run live retrieval/generation tests for no-evidence, prompt injection, provider failure, and citation mapping.
+- [-] Validate the integrated document → preview → chat → citation flow with live services.
 
 ## Blocked
 
@@ -78,7 +80,7 @@ Last Updated: 2026-10-01
 
 1. Run `docker compose up --build` on a Docker-enabled host.
 2. Confirm `alembic upgrade head` against the Compose PostgreSQL service.
-3. Complete live Phase 2–7 database/Docling/Qdrant/Gemini tests, then start Phase 8 experience integration.
+3. Complete live Phase 2–9 integration tests, then begin Phase 10 hardening and delivery.
 
 ## Known issues and technical debt
 

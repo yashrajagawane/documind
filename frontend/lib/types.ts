@@ -36,3 +36,15 @@ export type DocumentPreview = DocumentSummary & {
   metadata: Record<string, number>;
   tables: Record<string, unknown>[];
 };
+
+export type ChatCitation = {
+  chunk_id: string;
+  section: string | null;
+  score: number;
+  page: number | null;
+};
+
+export type ChatResponse = {
+  answer: string;
+  citations: ChatCitation[];
+};
