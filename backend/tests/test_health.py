@@ -9,6 +9,8 @@ def test_health_returns_a_non_secret_liveness_payload() -> None:
 
     assert response.status_code == 200
     assert response.headers["X-Request-ID"]
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert response.headers["X-Frame-Options"] == "DENY"
     assert response.json() == {"status": "healthy", "services": {"api": "healthy"}}
 
 
@@ -21,3 +23,11 @@ def test_unknown_route_uses_the_safe_error_envelope() -> None:
     assert response.json()["success"] is False
     assert response.json()["error"]["code"] == "NOT_FOUND"
     assert response.json()["error"]["request_id"] == response.headers["X-Request-ID"]
+
+
+def test_auth_routes_are_rate_limited() -> None:
+    with TestClient(app) as client:
+        responses = [client.post("/api/v1/auth/login") for _ in range(11)]
+
+    assert responses[-1].status_code == 429
+    assert responses[-1].json()["error"]["code"] == "RATE_LIMITED"

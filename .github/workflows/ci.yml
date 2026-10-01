@@ -37,3 +37,4 @@ jobs:
       - run: python -m pip install ".[dev]"
       - run: ruff check .
       - run: pytest
+      - run: alembic upgrade head --sql > migration.sql

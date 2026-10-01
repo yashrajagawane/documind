@@ -8,6 +8,7 @@ from app.core.config import get_settings
 from app.core.errors import install_exception_handlers
 from app.core.logging import configure_logging
 from app.middleware.request_id import RequestIDMiddleware
+from app.middleware.security import InMemoryRateLimitMiddleware, SecurityHeadersMiddleware
 
 
 @asynccontextmanager
@@ -19,6 +20,16 @@ async def lifespan(_: FastAPI):
 settings = get_settings()
 app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
 app.add_middleware(RequestIDMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(
+    InMemoryRateLimitMiddleware,
+    window_seconds=settings.rate_limit_window_seconds,
+    limits={
+        "auth": settings.rate_limit_auth_requests,
+        "upload": settings.rate_limit_upload_requests,
+        "chat": settings.rate_limit_chat_requests,
+    },
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,

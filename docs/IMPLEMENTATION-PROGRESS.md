@@ -1,8 +1,8 @@
 # DocuMind — Implementation Progress
 
-Overall Status: Phase 9 experience integration in progress.
-Current Phase: Phase 9 — Complete document experience
-Current Milestone: Validate document preview/chat/citations end-to-end with live services
+Overall Status: Phase 10 hardening and delivery in progress.
+Current Phase: Phase 10 — V1 hardening and delivery
+Current Milestone: Complete security/CI/Docker verification and release runbook
 Last Updated: 2026-10-01
 
 ## Repository status
@@ -33,7 +33,7 @@ Last Updated: 2026-10-01
 | 7 — Converse | [-] | Grounded RAG and citations | No-evidence/no-injection tests pass |
 | 8 — Frontend foundation | [x] | Typed app shell, auth, API client | Accessible auth/upload/list baseline |
 | 9 — Experience integration | [-] | Detail preview/chat/citations | End-to-end UX works |
-| 10 — Harden/deliver | [ ] | Tests, CI, Docker, security, README | V1 release checklist passes |
+| 10 — Harden/deliver | [-] | Tests, CI, Docker, security, README | V1 release checklist passes |
 | 11 — Validation | [ ] | Live smoke/recovery/evaluation | Deployment qualification documented |
 | 12 — Reliability/scale | [ ] | Queue, object storage, metrics | V1.2 migration validated |
 
@@ -60,6 +60,8 @@ Last Updated: 2026-10-01
 - [x] Optional Qdrant/Sentence Transformers dependencies and Compose Qdrant service configured.
 - [x] Grounded prompt builder, mandatory Qdrant retrieval filters, Gemini adapter, no-evidence response, and server-derived citations added.
 - [x] Preview workspace now connects grounded chat responses to citation cards and export actions.
+- [x] Security headers, readiness checks, deployment-secret validation, and bounded route-specific rate limits added.
+- [x] Compose applies migrations before backend startup; CI generates offline migration SQL and README documents clean-machine setup.
 
 ## In progress
 
@@ -71,6 +73,7 @@ Last Updated: 2026-10-01
 - [-] Run live embedding generation and Qdrant upsert/query/rebuild tests with mandatory security filters.
 - [-] Run live retrieval/generation tests for no-evidence, prompt injection, provider failure, and citation mapping.
 - [-] Validate the integrated document → preview → chat → citation flow with live services.
+- [-] Run the full Docker Compose, security, and live service release checklist on a Docker-enabled host.
 
 ## Blocked
 
@@ -80,7 +83,7 @@ Last Updated: 2026-10-01
 
 1. Run `docker compose up --build` on a Docker-enabled host.
 2. Confirm `alembic upgrade head` against the Compose PostgreSQL service.
-3. Complete live Phase 2–9 integration tests, then begin Phase 10 hardening and delivery.
+3. Complete the Phase 10 release checklist, then perform controlled Phase 11 production validation.
 
 ## Known issues and technical debt
 
@@ -107,7 +110,7 @@ Last Updated: 2026-10-01
 ## Deployment status
 
 - [-] Local Docker Compose (configured; not runnable on this host)
-- [x] CI pipeline configured
+- [x] CI pipeline configured (frontend checks, backend tests, lint, offline migration SQL)
 - [ ] Demo deployment
 - [ ] Production deployment
 - [ ] Backup/restore rehearsal

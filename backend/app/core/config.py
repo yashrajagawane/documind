@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.8-flash"
     retrieval_top_k: int = 5
     retrieval_min_score: float = 0.35
+    rate_limit_window_seconds: int = 60
+    rate_limit_auth_requests: int = 10
+    rate_limit_upload_requests: int = 20
+    rate_limit_chat_requests: int = 30
 
     @field_validator("cors_origins", mode="before")
     @classmethod
@@ -47,6 +51,15 @@ class Settings(BaseSettings):
     def parse_upload_extensions(cls, value: str | list[str]) -> list[str]:
         values = value.split(",") if isinstance(value, str) else value
         return [extension.strip().lower() for extension in values if extension.strip()]
+
+    @model_validator(mode="after")
+    def validate_deployment_secrets(self) -> "Settings":
+        if self.environment.lower() != "development":
+            if self.jwt_secret_key == "dev-only-change-this-secret":
+                raise ValueError("JWT_SECRET_KEY must be changed outside development.")
+            if not self.refresh_cookie_secure:
+                raise ValueError("REFRESH_COOKIE_SECURE must be true outside development.")
+        return self
 
 
 @lru_cache
