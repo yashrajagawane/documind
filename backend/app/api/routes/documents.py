@@ -1,3 +1,5 @@
+import html
+import json
 from pathlib import Path
 from uuid import UUID
 
@@ -21,7 +23,7 @@ from app.db.session import get_db_session
 from app.models.document import Document
 from app.models.processing_job import ProcessingJob
 from app.processing.runner import run_processing_job
-from app.schemas.documents import DocumentSummary
+from app.schemas.documents import DocumentPreview, DocumentSummary
 from app.storage.local import LocalStorage, StorageError, build_upload_key
 
 router = APIRouter(prefix="/documents")
@@ -126,6 +128,67 @@ async def get_document(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found.")
     return document
+
+
+async def get_owned_document(
+    document_id: UUID, user_id: UUID, db: AsyncSession
+) -> Document:
+    document = await db.scalar(
+        select(Document).where(Document.id == document_id, Document.user_id == user_id)
+    )
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    return document
+
+
+@router.get("/{document_id}/preview", response_model=DocumentPreview)
+async def preview_document(
+    document_id: UUID,
+    user_id: UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db_session),
+) -> DocumentPreview:
+    document = await get_owned_document(document_id, user_id, db)
+    if document.status != "ready" or not document.structured_json:
+        raise HTTPException(status_code=409, detail="Document preview is not ready.")
+    artifact = document.structured_json
+    return DocumentPreview(
+        **DocumentSummary.model_validate(document).model_dump(),
+        markdown=str(artifact.get("markdown", "")),
+        metadata=artifact.get("metadata", {}),
+        tables=artifact.get("tables", []),
+    )
+
+
+@router.get("/{document_id}/export")
+async def export_document(
+    document_id: UUID,
+    format: str = "markdown",
+    user_id: UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db_session),
+) -> Response:
+    document = await get_owned_document(document_id, user_id, db)
+    if document.status != "ready" or not document.structured_json:
+        raise HTTPException(status_code=409, detail="Document export is not ready.")
+    artifact = document.structured_json
+    markdown = str(artifact.get("markdown", ""))
+    export_format = format.lower()
+    if export_format == "markdown":
+        body, media_type, extension = markdown, "text/markdown", "md"
+    elif export_format == "txt":
+        body, media_type, extension = markdown, "text/plain", "txt"
+    elif export_format == "json":
+        body, media_type, extension = json.dumps(artifact, indent=2), "application/json", "json"
+    elif export_format == "html":
+        body = f"<!doctype html><meta charset=\"utf-8\"><pre>{html.escape(markdown)}</pre>"
+        media_type, extension = "text/html", "html"
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported export format.")
+    filename = Path(document.original_name).stem or "document"
+    return Response(
+        content=body,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}.{extension}"'},
+    )
 
 
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)

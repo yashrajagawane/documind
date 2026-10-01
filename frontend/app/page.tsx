@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 
-import { apiFetch } from "@/lib/api";
+import { apiDownload, apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import type { DocumentSummary } from "@/lib/types";
+import type { DocumentPreview, DocumentSummary } from "@/lib/types";
 
 export default function HomePage() {
   const { accessToken, user, isLoading, signIn, register, signOut } = useAuth();
@@ -72,6 +72,7 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [preview, setPreview] = useState<DocumentPreview | null>(null);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -105,6 +106,28 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
     if (!accessToken) return;
     await apiFetch<void>(`/documents/${id}`, { method: "DELETE" }, accessToken);
     setDocuments((current) => current.filter((document) => document.id !== id));
+    if (preview?.id === id) setPreview(null);
+  };
+
+  const showPreview = async (id: string) => {
+    if (!accessToken) return;
+    try {
+      setPreview(await apiFetch<DocumentPreview>(`/documents/${id}/preview`, {}, accessToken));
+      setMessage(null);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Preview is not ready.");
+    }
+  };
+
+  const download = async (format: string) => {
+    if (!accessToken || !preview) return;
+    const blob = await apiDownload(`/documents/${preview.id}/export?format=${format}`, accessToken);
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${preview.original_name}.${format}`;
+    anchor.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -117,9 +140,10 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
       {message && <p className="form-error" role="alert">{message}</p>}
       {loading ? <p className="muted">Loading your documents…</p> : documents.length === 0 ? <p className="muted">No documents yet.</p> : (
         <ul className="document-list">
-          {documents.map((document) => <li key={document.id}><span><strong>{document.original_name}</strong><small>{document.status}</small></span><button className="link-button" type="button" onClick={() => void remove(document.id)}>Delete</button></li>)}
+          {documents.map((document) => <li key={document.id}><span><strong>{document.original_name}</strong><small>{document.status}</small></span><span className="document-actions"><button className="link-button" type="button" disabled={document.status !== "ready"} onClick={() => void showPreview(document.id)}>Preview</button><button className="link-button" type="button" onClick={() => void remove(document.id)}>Delete</button></span></li>)}
         </ul>
       )}
+      {preview && <article className="preview-panel" aria-labelledby="preview-heading"><div className="preview-header"><h2 id="preview-heading">{preview.original_name}</h2><span>{preview.metadata.word_count ?? 0} words</span></div><pre>{preview.markdown}</pre><div className="export-actions"><button className="link-button" type="button" onClick={() => void download("markdown")}>Markdown</button><button className="link-button" type="button" onClick={() => void download("json")}>JSON</button><button className="link-button" type="button" onClick={() => void download("html")}>HTML</button></div></article>}
     </div>
   );
 }

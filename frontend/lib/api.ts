@@ -22,3 +22,18 @@ export async function apiFetch<T>(
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
+
+export async function apiDownload(
+  path: string,
+  accessToken: string,
+): Promise<Blob> {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    headers: { Accept: "application/octet-stream", Authorization: `Bearer ${accessToken}` },
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as ApiError | null;
+    throw new Error(body?.error.message ?? "The download could not be completed.");
+  }
+  return response.blob();
+}

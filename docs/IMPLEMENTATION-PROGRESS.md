@@ -1,8 +1,8 @@
 # DocuMind — Implementation Progress
 
-Overall Status: Phase 4 processing implementation in progress.
-Current Phase: Phase 4 — Processing lifecycle and parsing
-Current Milestone: Validate the worker path with live PostgreSQL and Docling runtime
+Overall Status: Phase 5 document understanding implementation in progress.
+Current Phase: Phase 5 — Extraction, preview, analytics and export
+Current Milestone: Validate processed artifacts and exports with live Docling/PostgreSQL
 Last Updated: 2026-10-01
 
 ## Repository status
@@ -28,7 +28,7 @@ Last Updated: 2026-10-01
 | 2 — Identity | [-] | Auth, refresh sessions, ownership dependency | Protected APIs trust only verified identity |
 | 3 — Ingestion | [-] | Secure upload, storage port, document/job records | Owner-only validated uploads |
 | 4 — Processing | [-] | Job lifecycle, Docling, real status | API nonblocking and recoverable states |
-| 5 — Understand | [ ] | Preview, tables, statistics, export | Parsed content inspectable/exportable |
+| 5 — Understand | [-] | Preview, tables, statistics, export | Parsed content inspectable/exportable |
 | 6 — Index | [ ] | Chunking, embeddings, Qdrant | Rebuildable isolated vectors |
 | 7 — Converse | [ ] | Grounded RAG and citations | No-evidence/no-injection tests pass |
 | 8 — Frontend foundation | [ ] | Typed app shell, auth, API client | Accessible auth/upload/list baseline |
@@ -54,6 +54,8 @@ Last Updated: 2026-10-01
 - [x] Upload migration `20261001_0003`, storage tests, and owner-scoped upload/list UI added.
 - [x] V1 background processing adapter, guarded job claim/failure transitions, retry endpoint, and lifecycle timestamps added.
 - [x] Docling integration isolated behind `DoclingProcessor`; processing dependency is optional for lightweight CI and installed by the backend image.
+- [x] Owner-scoped preview and markdown/JSON/HTML/TXT export projections implemented.
+- [x] Deterministic markdown statistics persisted with processed artifacts and surfaced in the frontend preview.
 
 ## In progress
 
@@ -61,6 +63,7 @@ Last Updated: 2026-10-01
 - [-] Add database-backed refresh-reuse and ownership integration tests after a local PostgreSQL runtime is available.
 - [-] Validate multipart upload transactionality and duplicate/idempotency behavior against live PostgreSQL.
 - [-] Run a real Docling conversion and verify queued → processing → ready/failed recovery against live PostgreSQL.
+- [-] Verify preview/export responses against real processed documents and table-bearing artifacts.
 
 ## Blocked
 
@@ -70,7 +73,7 @@ Last Updated: 2026-10-01
 
 1. Run `docker compose up --build` on a Docker-enabled host.
 2. Confirm `alembic upgrade head` against the Compose PostgreSQL service.
-3. Complete live Phase 2–4 database/Docling tests, then start Phase 5 preview and export.
+3. Complete live Phase 2–5 database/Docling tests, then start Phase 6 embeddings and vector indexing.
 
 ## Known issues and technical debt
 

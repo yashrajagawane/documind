@@ -30,3 +30,9 @@ export type DocumentSummary = {
   processing_progress: number;
   created_at: string;
 };
+
+export type DocumentPreview = DocumentSummary & {
+  markdown: string;
+  metadata: Record<string, number>;
+  tables: Record<string, unknown>[];
+};

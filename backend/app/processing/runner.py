@@ -38,7 +38,15 @@ async def run_processing_job(job_id: UUID) -> None:
         try:
             source = storage.path_for(document.storage_key)
             markdown = await asyncio.to_thread(processor.convert_to_markdown, source)
-            document.structured_json = {"markdown": markdown}
+            document.structured_json = {
+                "markdown": markdown,
+                "metadata": {
+                    "character_count": len(markdown),
+                    "line_count": len(markdown.splitlines()),
+                    "word_count": len(markdown.split()),
+                },
+                "tables": [],
+            }
             document.status = "ready"
             document.processing_stage = "completed"
             document.processing_progress = 100

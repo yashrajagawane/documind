@@ -14,3 +14,9 @@ class DocumentSummary(BaseModel):
     processing_stage: str | None
     processing_progress: int
     created_at: datetime
+
+
+class DocumentPreview(DocumentSummary):
+    markdown: str
+    metadata: dict[str, int]
+    tables: list[dict[str, object]]
