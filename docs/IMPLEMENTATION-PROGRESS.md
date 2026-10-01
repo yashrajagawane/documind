@@ -1,8 +1,8 @@
 # DocuMind — Implementation Progress
 
-Overall Status: Phase 11 production validation in progress.
-Current Phase: Phase 11 — Production validation
-Current Milestone: Run controlled live smoke, backup/restore, and RAG evaluation checks
+Overall Status: Phase 12 reliability and scale foundations in progress.
+Current Phase: Phase 12 — Reliability/scale
+Current Milestone: Validate a durable queue, object storage, and shared observability in a deployed environment
 Last Updated: 2026-10-01
 
 ## Repository status
@@ -35,7 +35,7 @@ Last Updated: 2026-10-01
 | 9 — Experience integration | [-] | Detail preview/chat/citations | End-to-end UX works |
 | 10 — Harden/deliver | [-] | Tests, CI, Docker, security, README | V1 release checklist passes |
 | 11 — Validation | [-] | Live smoke/recovery/evaluation | Deployment qualification documented |
-| 12 — Reliability/scale | [ ] | Queue, object storage, metrics | V1.2 migration validated |
+| 12 — Reliability/scale | [-] | Queue, object storage, metrics | V1.2 migration validated |
 
 ## Completed
 
@@ -62,6 +62,9 @@ Last Updated: 2026-10-01
 - [x] Preview workspace now connects grounded chat responses to citation cards and export actions.
 - [x] Security headers, readiness checks, deployment-secret validation, and bounded route-specific rate limits added.
 - [x] Compose applies migrations before backend startup; CI generates offline migration SQL and README documents clean-machine setup.
+- [x] Processing dispatch is isolated behind an in-process adapter, so routes do not depend on a future queue vendor.
+- [x] Persisted processing claims now record attempts and a configurable lease; a recovery service requeues expired claims until the bounded retry budget is exhausted.
+- [x] Protected Prometheus-text metrics and a private-storage interface/factory establish migration seams without enabling unsafe external infrastructure by configuration alone.
 
 ## In progress
 
@@ -75,6 +78,7 @@ Last Updated: 2026-10-01
 - [-] Validate the integrated document → preview → chat → citation flow with live services.
 - [-] Run the full Docker Compose, security, and live service release checklist on a Docker-enabled host.
 - [x] Release smoke-test script, backup/restore rehearsal checklist, and initial RAG evaluation cases added.
+- [-] Deploy and validate a shared queue consumer, Redis/edge limiter, S3-compatible private storage, and centralized metrics/alerts before horizontal scaling.
 
 ## Blocked
 
@@ -82,15 +86,17 @@ Last Updated: 2026-10-01
 
 ## Next tasks
 
-1. Run `docker compose up --build` on a Docker-enabled host.
-2. Confirm `alembic upgrade head` against the Compose PostgreSQL service.
-3. Run the Phase 11 release checklist and record the deployment qualification decision.
+1. Run `docker compose up --build` on a Docker-enabled host and complete the Phase 11 release checklist.
+2. Choose and provision the approved durable queue, shared limiter, object-storage, and metrics backends.
+3. Implement adapter-specific integration, failure-recovery, deletion, and multi-replica tests before enabling horizontal scaling.
 
 ## Known issues and technical debt
 
 - Compose runtime and real PostgreSQL connectivity are unvalidated locally because Docker is unavailable.
 - Free hosted environments may not have sufficient memory for Docling and may sleep/delete state. Do not classify a free hosted deployment as production-ready.
-- V1 in-process job adapter has bounded recovery via persisted jobs but not durable execution; V1.2 queue migration remains planned.
+- V1 uses an in-process dispatcher. Job state and lease recovery are durable in PostgreSQL, but no process-crash resume occurs until a real queue worker consumes recovered `queued` jobs.
+- Metrics and rate-limit events remain process-local; use them only for a single instance until a shared observability/limiting backend is deployed.
+- Only local private storage is enabled. An S3-compatible adapter needs its own security, lifecycle, and migration validation.
 
 ## Architecture changes
 

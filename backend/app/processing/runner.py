@@ -4,14 +4,18 @@ from uuid import UUID
 
 from sqlalchemy import select
 
+from app.core.config import get_settings
+from app.core.metrics import metrics
 from app.db.session import AsyncSessionFactory
 from app.models.document import Document
 from app.models.processing_job import ProcessingJob
 from app.processing.docling import DoclingProcessor, ProcessingError
-from app.storage.local import LocalStorage
+from app.storage.factory import get_storage
 
 processor = DoclingProcessor()
-storage = LocalStorage()
+storage = get_storage()
+
+
 async def run_processing_job(job_id: UUID) -> None:
     async with AsyncSessionFactory() as db:
         row = await db.execute(
@@ -27,8 +31,9 @@ async def run_processing_job(job_id: UUID) -> None:
             return
         now = datetime.now(UTC)
         job.status = "claimed"
+        job.attempt_count += 1
         job.started_at = now
-        job.lease_expires_at = now + timedelta(minutes=30)
+        job.lease_expires_at = now + timedelta(minutes=get_settings().processing_lease_minutes)
         document.status = "processing"
         document.processing_stage = "extracting"
         document.processing_progress = 25
@@ -56,6 +61,7 @@ async def run_processing_job(job_id: UUID) -> None:
             job.completed_at = datetime.now(UTC)
             job.lease_expires_at = None
             await db.commit()
+            metrics.increment("documind_processing_jobs_total", outcome="completed")
         except ProcessingError as error:
             await mark_failed(db, job, document, str(error))
         except Exception:
@@ -70,3 +76,4 @@ async def mark_failed(db, job: ProcessingJob, document: Document, error_code: st
     document.processing_stage = "failed"
     document.processing_error = error_code[:64]
     await db.commit()
+    metrics.increment("documind_processing_jobs_total", outcome="failed")

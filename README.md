@@ -52,6 +52,9 @@ python -m pip install ".[processing,indexing,rag]"
 - Uploads enforce size, extension, magic-byte, checksum, and path-safety checks.
 - Qdrant payloads carry mandatory `user_id`, `document_id`, and artifact-version filters.
 - The V1 rate limiter is process-local. Before running multiple backend replicas, move its event store to a shared Redis or edge limiter.
+- Processing jobs are persisted before dispatch and carry a bounded worker lease. `app.processing.recovery.recover_expired_processing_leases` is the recovery hook for a future worker scheduler; the current in-process dispatcher cannot resume work after a process crash.
+- `GET /api/v1/metrics` is intentionally hidden unless `METRICS_TOKEN` is configured and supplied as `X-Metrics-Token`. These counters are process-local and are a migration seam, not a multi-replica monitoring system.
+- `STORAGE_BACKEND=local` is the only enabled adapter. The private-storage interface is ready for a reviewed S3-compatible adapter; do not select another backend until its credentials, encryption, lifecycle, and deletion semantics are implemented and tested.
 - Never commit `.env`, API keys, uploaded files, model caches, or database volumes.
 
 See `docs/IMPLEMENTATION-PROGRESS.md` for phase status and `docs/MASTER-IMPLEMENTATION-PLAN.md` for the engineering contract.

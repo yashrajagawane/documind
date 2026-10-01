@@ -22,15 +22,16 @@ from app.core.config import get_settings
 from app.db.session import get_db_session
 from app.indexing.qdrant import IndexingUnavailable
 from app.indexing.runner import index_artifact
+from app.jobs.dispatcher import job_dispatcher
 from app.models.document import Document
 from app.models.processing_job import ProcessingJob
-from app.processing.runner import run_processing_job
 from app.schemas.documents import DocumentPreview, DocumentSummary
-from app.storage.local import LocalStorage, StorageError, build_upload_key
+from app.storage.factory import get_storage
+from app.storage.local import StorageError, build_upload_key
 
 router = APIRouter(prefix="/documents")
 settings = get_settings()
-storage = LocalStorage(settings.storage_dir)
+storage = get_storage()
 
 
 def safe_original_name(filename: str | None) -> tuple[str, str]:
@@ -102,7 +103,7 @@ async def upload_document(
         await storage.delete(key)
         raise
     await db.refresh(document)
-    background_tasks.add_task(run_processing_job, job.id)
+    job_dispatcher.enqueue_processing(background_tasks, job.id)
     return document
 
 
@@ -249,5 +250,5 @@ async def retry_document(
     db.add(job)
     await db.commit()
     await db.refresh(document)
-    background_tasks.add_task(run_processing_job, job.id)
+    job_dispatcher.enqueue_processing(background_tasks, job.id)
     return document

@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     jwt_access_expire_minutes: int = 60
     jwt_refresh_expire_days: int = 14
     refresh_cookie_secure: bool = False
+    storage_backend: str = "local"
     storage_dir: str = "storage"
     max_upload_bytes: int = 25 * 1024 * 1024
     allowed_upload_extensions: list[str] = Field(
@@ -38,6 +39,9 @@ class Settings(BaseSettings):
     rate_limit_auth_requests: int = 10
     rate_limit_upload_requests: int = 20
     rate_limit_chat_requests: int = 30
+    processing_lease_minutes: int = 30
+    processing_max_attempts: int = 3
+    metrics_token: str | None = None
 
     @field_validator("cors_origins", mode="before")
     @classmethod

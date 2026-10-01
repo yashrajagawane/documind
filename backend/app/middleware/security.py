@@ -5,6 +5,8 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from app.core.metrics import metrics
+
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):  # type: ignore[no-untyped-def]
@@ -35,6 +37,7 @@ class InMemoryRateLimitMiddleware(BaseHTTPMiddleware):
         while events and events[0] <= now - self.window_seconds:
             events.popleft()
         if len(events) >= self.limits[bucket]:
+            metrics.increment("documind_rate_limit_rejections_total", bucket=bucket)
             return JSONResponse(
                 status_code=429,
                 content={
