@@ -1,7 +1,17 @@
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Header, HTTPException, Response, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Header,
+    HTTPException,
+    Response,
+    UploadFile,
+    status,
+)
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +20,7 @@ from app.core.config import get_settings
 from app.db.session import get_db_session
 from app.models.document import Document
 from app.models.processing_job import ProcessingJob
+from app.processing.runner import run_processing_job
 from app.schemas.documents import DocumentSummary
 from app.storage.local import LocalStorage, StorageError, build_upload_key
 
@@ -31,6 +42,7 @@ def safe_original_name(filename: str | None) -> tuple[str, str]:
 @router.post("", response_model=DocumentSummary, status_code=status.HTTP_201_CREATED)
 async def upload_document(
     response: Response,
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     user_id: UUID = Depends(get_current_user_id),
@@ -72,18 +84,21 @@ async def upload_document(
         original_name=original_name,
         checksum_sha256=checksum,
         idempotency_key=idempotency_key,
-        status="uploaded",
+        status="queued",
+        processing_stage="queued",
         processing_progress=0,
     )
     db.add(document)
     await db.flush()
-    db.add(ProcessingJob(document_id=document.id, status="queued", attempt_count=0))
+    job = ProcessingJob(document_id=document.id, status="queued", attempt_count=0)
+    db.add(job)
     try:
         await db.commit()
     except Exception:
         await storage.delete(key)
         raise
     await db.refresh(document)
+    background_tasks.add_task(run_processing_job, job.id)
     return document
 
 
@@ -128,3 +143,29 @@ async def delete_document(
     await db.delete(document)
     await db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/{document_id}/retry", response_model=DocumentSummary, status_code=202)
+async def retry_document(
+    document_id: UUID,
+    background_tasks: BackgroundTasks,
+    user_id: UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db_session),
+) -> Document:
+    document = await db.scalar(
+        select(Document).where(Document.id == document_id, Document.user_id == user_id)
+    )
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    if document.status != "failed":
+        raise HTTPException(status_code=409, detail="Only failed documents can be retried.")
+    document.status = "queued"
+    document.processing_stage = "queued"
+    document.processing_progress = 0
+    document.processing_error = None
+    job = ProcessingJob(document_id=document.id, status="queued", attempt_count=0)
+    db.add(job)
+    await db.commit()
+    await db.refresh(document)
+    background_tasks.add_task(run_processing_job, job.id)
+    return document

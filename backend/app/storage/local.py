@@ -23,6 +23,9 @@ class LocalStorage:
             raise StorageError("Storage key escaped the private storage root.")
         return path
 
+    def path_for(self, key: str) -> Path:
+        return self._resolve(key)
+
     async def save_stream(
         self, source: BinaryIO, key: str, max_bytes: int, suffix: str
     ) -> tuple[int, str]:
