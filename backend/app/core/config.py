@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     qdrant_collection: str = "documind_chunks"
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_dimensions: int = 384
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-3.8-flash"
+    retrieval_top_k: int = 5
+    retrieval_min_score: float = 0.35
 
     @field_validator("cors_origins", mode="before")
     @classmethod

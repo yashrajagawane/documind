@@ -35,6 +35,9 @@ indexing = [
   "qdrant-client==1.17.0",
   "sentence-transformers==6.1.0",
 ]
+rag = [
+  "google-genai==2.23.0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,9 +1,19 @@
 import asyncio
 import hashlib
+from dataclasses import dataclass
 from uuid import UUID
 
 from app.core.config import get_settings
 from app.indexing.chunking import Chunk
+
+
+@dataclass(frozen=True)
+class RetrievedPoint:
+    chunk_id: str
+    text: str
+    section: str | None
+    score: float
+    page: int | None
 
 
 class IndexingUnavailable(Exception):
@@ -74,5 +84,47 @@ class QdrantIndexer:
                     for chunk, vector in zip(chunks, vectors, strict=True)
                 ],
             )
+        finally:
+            await client.close()
+
+    async def search(
+        self, user_id: UUID, document_id: UUID, query: str, limit: int, min_score: float
+    ) -> list[RetrievedPoint]:
+        try:
+            from qdrant_client import AsyncQdrantClient, models
+        except ImportError as error:
+            raise IndexingUnavailable("VECTOR_INDEX_UNAVAILABLE") from error
+        vector = (await asyncio.to_thread(self.embeddings.embed, [query]))[0]
+        client = AsyncQdrantClient(
+            url=self.settings.qdrant_url, api_key=self.settings.qdrant_api_key
+        )
+        try:
+            result = await client.query_points(
+                collection_name=self.settings.qdrant_collection,
+                query=vector,
+                query_filter=models.Filter(
+                    must=[
+                        models.FieldCondition(
+                            key="user_id", match=models.MatchValue(value=str(user_id))
+                        ),
+                        models.FieldCondition(
+                            key="document_id", match=models.MatchValue(value=str(document_id))
+                        ),
+                    ]
+                ),
+                limit=limit,
+                score_threshold=min_score,
+                with_payload=True,
+            )
+            return [
+                RetrievedPoint(
+                    chunk_id=str(point.payload.get("chunk_id", "")),
+                    text=str(point.payload.get("text", "")),
+                    section=point.payload.get("section"),
+                    score=float(point.score),
+                    page=point.payload.get("page"),
+                )
+                for point in result.points
+            ]
         finally:
             await client.close()
