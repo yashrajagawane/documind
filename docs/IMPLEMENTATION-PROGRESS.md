@@ -1,8 +1,8 @@
 # DocuMind — Implementation Progress
 
-Overall Status: Phase 10 hardening and delivery in progress.
-Current Phase: Phase 10 — V1 hardening and delivery
-Current Milestone: Complete security/CI/Docker verification and release runbook
+Overall Status: Phase 11 production validation in progress.
+Current Phase: Phase 11 — Production validation
+Current Milestone: Run controlled live smoke, backup/restore, and RAG evaluation checks
 Last Updated: 2026-10-01
 
 ## Repository status
@@ -34,7 +34,7 @@ Last Updated: 2026-10-01
 | 8 — Frontend foundation | [x] | Typed app shell, auth, API client | Accessible auth/upload/list baseline |
 | 9 — Experience integration | [-] | Detail preview/chat/citations | End-to-end UX works |
 | 10 — Harden/deliver | [-] | Tests, CI, Docker, security, README | V1 release checklist passes |
-| 11 — Validation | [ ] | Live smoke/recovery/evaluation | Deployment qualification documented |
+| 11 — Validation | [-] | Live smoke/recovery/evaluation | Deployment qualification documented |
 | 12 — Reliability/scale | [ ] | Queue, object storage, metrics | V1.2 migration validated |
 
 ## Completed
@@ -74,6 +74,7 @@ Last Updated: 2026-10-01
 - [-] Run live retrieval/generation tests for no-evidence, prompt injection, provider failure, and citation mapping.
 - [-] Validate the integrated document → preview → chat → citation flow with live services.
 - [-] Run the full Docker Compose, security, and live service release checklist on a Docker-enabled host.
+- [x] Release smoke-test script, backup/restore rehearsal checklist, and initial RAG evaluation cases added.
 
 ## Blocked
 
@@ -83,7 +84,7 @@ Last Updated: 2026-10-01
 
 1. Run `docker compose up --build` on a Docker-enabled host.
 2. Confirm `alembic upgrade head` against the Compose PostgreSQL service.
-3. Complete the Phase 10 release checklist, then perform controlled Phase 11 production validation.
+3. Run the Phase 11 release checklist and record the deployment qualification decision.
 
 ## Known issues and technical debt
 
@@ -104,8 +105,8 @@ Last Updated: 2026-10-01
 - [x] Frontend component tests
 - [ ] End-to-end test
 - [ ] Security suite
-- [x] Migration SQL generation (offline, through refresh-session head)
-- [ ] RAG evaluation set
+- [x] Migration SQL generation (offline, through processing head)
+- [-] RAG evaluation set (cases defined; live provider run pending)
 
 ## Deployment status
 
@@ -113,4 +114,4 @@ Last Updated: 2026-10-01
 - [x] CI pipeline configured (frontend checks, backend tests, lint, offline migration SQL)
 - [ ] Demo deployment
 - [ ] Production deployment
-- [ ] Backup/restore rehearsal
+- [-] Backup/restore rehearsal (runbook defined; live rehearsal pending)
