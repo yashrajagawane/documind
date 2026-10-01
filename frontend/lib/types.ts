@@ -20,3 +20,13 @@ export type AuthResponse = {
   access_token: string;
   token_type: "bearer";
 };
+
+export type DocumentSummary = {
+  id: string;
+  original_name: string;
+  checksum_sha256: string;
+  status: string;
+  processing_stage: string | null;
+  processing_progress: number;
+  created_at: string;
+};

@@ -30,6 +30,7 @@ class Document(Base):
     storage_key: Mapped[str] = mapped_column(String(512), unique=True, nullable=False)
     original_name: Mapped[str] = mapped_column(String(512), nullable=False)
     checksum_sha256: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[str] = mapped_column(String(32), default="uploaded", nullable=False)
     processing_stage: Mapped[str | None] = mapped_column(String(64))
     processing_progress: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

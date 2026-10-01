@@ -1,0 +1,1 @@
+"""Private storage adapters."""

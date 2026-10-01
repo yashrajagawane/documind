@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     jwt_access_expire_minutes: int = 60
     jwt_refresh_expire_days: int = 14
     refresh_cookie_secure: bool = False
+    storage_dir: str = "storage"
+    max_upload_bytes: int = 25 * 1024 * 1024
+    allowed_upload_extensions: list[str] = Field(
+        default_factory=lambda: [".pdf", ".docx", ".xlsx", ".pptx", ".txt", ".csv", ".md"]
+    )
 
     @field_validator("cors_origins", mode="before")
     @classmethod
@@ -27,6 +32,12 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
         return value
+
+    @field_validator("allowed_upload_extensions", mode="before")
+    @classmethod
+    def parse_upload_extensions(cls, value: str | list[str]) -> list[str]:
+        values = value.split(",") if isinstance(value, str) else value
+        return [extension.strip().lower() for extension in values if extension.strip()]
 
 
 @lru_cache

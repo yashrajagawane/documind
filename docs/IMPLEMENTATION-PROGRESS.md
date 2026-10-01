@@ -1,8 +1,8 @@
 # DocuMind — Implementation Progress
 
-Overall Status: Phase 2 identity implementation in progress.
-Current Phase: Phase 2 — Authentication and authorization
-Current Milestone: Validate identity against live PostgreSQL and finish session-reuse coverage
+Overall Status: Phase 3 ingestion implementation in progress.
+Current Phase: Phase 3 — Secure upload and storage abstraction
+Current Milestone: Validate owned uploads against live PostgreSQL and storage runtime
 Last Updated: 2026-10-01
 
 ## Repository status
@@ -26,7 +26,7 @@ Last Updated: 2026-10-01
 | 0 — Contract baseline | [x] | Approve blueprint/ADRs and choose implementation start | User authorized implementation |
 | 1 — Foundation | [-] | Runtime, config, migrations, health, logging | Live Docker/PostgreSQL boot remains |
 | 2 — Identity | [-] | Auth, refresh sessions, ownership dependency | Protected APIs trust only verified identity |
-| 3 — Ingestion | [ ] | Secure upload, storage port, document/job records | Owner-only validated uploads |
+| 3 — Ingestion | [-] | Secure upload, storage port, document/job records | Owner-only validated uploads |
 | 4 — Processing | [ ] | Job lifecycle, Docling, real status | API nonblocking and recoverable states |
 | 5 — Understand | [ ] | Preview, tables, statistics, export | Parsed content inspectable/exportable |
 | 6 — Index | [ ] | Chunking, embeddings, Qdrant | Rebuildable isolated vectors |
@@ -49,11 +49,15 @@ Last Updated: 2026-10-01
 - [x] Phase 2 JWT access tokens, bcrypt password hashing, registration/login/logout/refresh, and `/users/me` implemented.
 - [x] Refresh tokens are opaque, hashed at rest, rotated by session family, and delivered through an HttpOnly cookie.
 - [x] Frontend auth context and accessible register/login surface added without localStorage token persistence.
+- [x] Private local storage adapter, streamed checksum/size validation, extension/magic checks, and traversal protection implemented.
+- [x] Owned document upload/list/detail/delete APIs implemented with idempotency and queued job persistence.
+- [x] Upload migration `20261001_0003`, storage tests, and owner-scoped upload/list UI added.
 
 ## In progress
 
 - [-] Validate the Compose stack and auth migration against a live PostgreSQL container when Docker is available.
 - [-] Add database-backed refresh-reuse and ownership integration tests after a local PostgreSQL runtime is available.
+- [-] Validate multipart upload transactionality and duplicate/idempotency behavior against live PostgreSQL.
 
 ## Blocked
 
@@ -63,7 +67,7 @@ Last Updated: 2026-10-01
 
 1. Run `docker compose up --build` on a Docker-enabled host.
 2. Confirm `alembic upgrade head` against the Compose PostgreSQL service.
-3. Complete Phase 2 live database and refresh-reuse tests, then start Phase 3 secure upload.
+3. Complete live Phase 2/3 database tests, then start Phase 4 processing lifecycle.
 
 ## Known issues and technical debt
 
@@ -79,7 +83,7 @@ Last Updated: 2026-10-01
 
 ## Testing status
 
-- [x] Backend unit tests (health, error envelope, password and JWT utilities, auth boundary)
+- [x] Backend unit tests (health, auth boundary, password/JWT utilities, storage safety)
 - [ ] Backend integration tests
 - [x] Frontend component tests
 - [ ] End-to-end test

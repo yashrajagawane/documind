@@ -21,6 +21,8 @@ out/
 # Local runtime data
 storage/*
 !storage/.gitkeep
+backend/storage/*
+!backend/storage/.gitkeep
 *.log
 
 # OS/editor files
