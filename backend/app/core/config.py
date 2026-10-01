@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://documind:documind@localhost:5432/documind"
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
     log_level: str = "INFO"
+    jwt_secret_key: str = "dev-only-change-this-secret"
+    jwt_algorithm: str = "HS256"
+    jwt_access_expire_minutes: int = 60
+    jwt_refresh_expire_days: int = 14
+    refresh_cookie_secure: bool = False
 
     @field_validator("cors_origins", mode="before")
     @classmethod

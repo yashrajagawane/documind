@@ -9,3 +9,14 @@ export type ProcessingStatus =
   | "ready"
   | "failed"
   | "deleting";
+
+export type PublicUser = {
+  id: string;
+  email: string;
+};
+
+export type AuthResponse = {
+  user: PublicUser;
+  access_token: string;
+  token_type: "bearer";
+};

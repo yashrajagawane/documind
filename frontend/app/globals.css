@@ -24,6 +24,21 @@ button, input, textarea { font: inherit; }
 
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
+.auth-shell { min-height: 100vh; display: grid; place-items: center; padding: 2rem 1.5rem; }
+.auth-card { width: min(100%, 28rem); padding: 2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 1rem; box-shadow: 0 1.5rem 4rem #0008; }
+.eyebrow { color: var(--accent); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 .75rem; }
+.auth-card h1 { margin: 0 0 .75rem; font-size: clamp(1.8rem, 5vw, 2.5rem); }
+.muted { color: var(--text-secondary); line-height: 1.6; }
+.auth-card form { display: grid; gap: .55rem; margin-top: 1.5rem; }
+.auth-card input { color: var(--text-primary); background: var(--background); border: 1px solid var(--border-strong); border-radius: .5rem; padding: .75rem; }
+.auth-card input:focus { border-color: var(--accent); }
+.button { margin-top: .75rem; color: white; background: var(--accent); border: 0; border-radius: .5rem; padding: .8rem 1rem; cursor: pointer; font-weight: 700; }
+.button:hover { background: var(--accent-hover); }
+.button:disabled { cursor: wait; opacity: .7; }
+.link-button { margin-top: 1rem; color: var(--text-secondary); background: transparent; border: 0; padding: 0; cursor: pointer; }
+.link-button:hover { color: var(--text-primary); }
+.form-error { color: #fca5a5; font-size: .9rem; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
 }

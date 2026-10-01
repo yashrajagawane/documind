@@ -1,17 +1,64 @@
 "use client";
 
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+
+import { apiFetch } from "@/lib/api";
+import type { AuthResponse, PublicUser } from "@/lib/types";
 
 type AuthContextValue = {
   accessToken: string | null;
-  setAccessToken: (token: string | null) => void;
+  user: PublicUser | null;
+  isLoading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const value = useMemo(() => ({ accessToken, setAccessToken }), [accessToken]);
+  const [user, setUser] = useState<PublicUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const applyAuth = (auth: AuthResponse) => {
+    setAccessToken(auth.access_token);
+    setUser(auth.user);
+  };
+
+  const signIn = useCallback(async (email: string, password: string) => {
+    applyAuth(await apiFetch<AuthResponse>("/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    }));
+  }, []);
+
+  const register = useCallback(async (email: string, password: string) => {
+    applyAuth(await apiFetch<AuthResponse>("/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    }));
+  }, []);
+
+  const signOut = useCallback(async () => {
+    await apiFetch<void>("/auth/logout", { method: "POST" });
+    setAccessToken(null);
+    setUser(null);
+  }, []);
+
+  useEffect(() => {
+    apiFetch<AuthResponse>("/auth/refresh", { method: "POST" })
+      .then(applyAuth)
+      .catch(() => undefined)
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  const value = useMemo(
+    () => ({ accessToken, user, isLoading, signIn, register, signOut }),
+    [accessToken, user, isLoading, signIn, register, signOut],
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

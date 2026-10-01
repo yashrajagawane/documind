@@ -9,6 +9,7 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.document import Document
+    from app.models.refresh_session import RefreshSession
 
 
 class User(Base):
@@ -21,3 +22,6 @@ class User(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     documents: Mapped[list["Document"]] = relationship(back_populates="user")
+    refresh_sessions: Mapped[list["RefreshSession"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )

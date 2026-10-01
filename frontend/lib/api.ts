@@ -19,5 +19,6 @@ export async function apiFetch<T>(
     const body = (await response.json().catch(() => null)) as ApiError | null;
     throw new Error(body?.error.message ?? "The request could not be completed.");
   }
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }

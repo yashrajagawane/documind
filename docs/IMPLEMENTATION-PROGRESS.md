@@ -1,8 +1,8 @@
 # DocuMind — Implementation Progress
 
-Overall Status: Phase 1 implementation complete; live Docker/PostgreSQL validation remains.
-Current Phase: Phase 1 — Foundation
-Current Milestone: Runtime validation and local development handoff
+Overall Status: Phase 2 identity implementation in progress.
+Current Phase: Phase 2 — Authentication and authorization
+Current Milestone: Validate identity against live PostgreSQL and finish session-reuse coverage
 Last Updated: 2026-10-01
 
 ## Repository status
@@ -25,7 +25,7 @@ Last Updated: 2026-10-01
 |---|---|---|---|
 | 0 — Contract baseline | [x] | Approve blueprint/ADRs and choose implementation start | User authorized implementation |
 | 1 — Foundation | [-] | Runtime, config, migrations, health, logging | Live Docker/PostgreSQL boot remains |
-| 2 — Identity | [ ] | Auth, refresh sessions, ownership dependency | Protected APIs trust only verified identity |
+| 2 — Identity | [-] | Auth, refresh sessions, ownership dependency | Protected APIs trust only verified identity |
 | 3 — Ingestion | [ ] | Secure upload, storage port, document/job records | Owner-only validated uploads |
 | 4 — Processing | [ ] | Job lifecycle, Docling, real status | API nonblocking and recoverable states |
 | 5 — Understand | [ ] | Preview, tables, statistics, export | Parsed content inspectable/exportable |
@@ -46,10 +46,14 @@ Last Updated: 2026-10-01
 - [x] Async SQLAlchemy models and initial Alembic migration for users, documents, and processing jobs implemented.
 - [x] Strict Next.js app shell, providers, API wrapper, design tokens, and component-test baseline implemented.
 - [x] Docker Compose, Dockerfiles, environment template, and GitHub Actions validation workflow added.
+- [x] Phase 2 JWT access tokens, bcrypt password hashing, registration/login/logout/refresh, and `/users/me` implemented.
+- [x] Refresh tokens are opaque, hashed at rest, rotated by session family, and delivered through an HttpOnly cookie.
+- [x] Frontend auth context and accessible register/login surface added without localStorage token persistence.
 
 ## In progress
 
-- [-] Validate the Compose stack and apply the migration against a live PostgreSQL container when Docker is available.
+- [-] Validate the Compose stack and auth migration against a live PostgreSQL container when Docker is available.
+- [-] Add database-backed refresh-reuse and ownership integration tests after a local PostgreSQL runtime is available.
 
 ## Blocked
 
@@ -59,7 +63,7 @@ Last Updated: 2026-10-01
 
 1. Run `docker compose up --build` on a Docker-enabled host.
 2. Confirm `alembic upgrade head` against the Compose PostgreSQL service.
-3. Start Phase 2: authenticated identity and refresh-session persistence.
+3. Complete Phase 2 live database and refresh-reuse tests, then start Phase 3 secure upload.
 
 ## Known issues and technical debt
 
@@ -75,12 +79,12 @@ Last Updated: 2026-10-01
 
 ## Testing status
 
-- [x] Backend unit tests
+- [x] Backend unit tests (health, error envelope, password and JWT utilities, auth boundary)
 - [ ] Backend integration tests
 - [x] Frontend component tests
 - [ ] End-to-end test
 - [ ] Security suite
-- [x] Migration SQL generation (offline)
+- [x] Migration SQL generation (offline, through refresh-session head)
 - [ ] RAG evaluation set
 
 ## Deployment status

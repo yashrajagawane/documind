@@ -11,6 +11,9 @@ dependencies = [
   "alembic==1.20.0",
   "asyncpg==0.31.0",
   "fastapi==0.141.1",
+  "PyJWT==2.15.1",
+  "bcrypt==5.0.0",
+  "email-validator==2.3.0",
   "pydantic-settings==2.13.1",
   "psycopg[binary]==3.2.10",
   "sqlalchemy==2.0.54",
@@ -35,6 +38,7 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+ignore = ["B008"]
 
 [tool.setuptools.packages.find]
 include = ["app*"]
