@@ -1,8 +1,8 @@
 # DocuMind — Implementation Progress
 
-Overall Status: Phase 5 document understanding implementation in progress.
-Current Phase: Phase 5 — Extraction, preview, analytics and export
-Current Milestone: Validate processed artifacts and exports with live Docling/PostgreSQL
+Overall Status: Phase 6 indexing implementation in progress.
+Current Phase: Phase 6 — Embeddings and vector indexing
+Current Milestone: Validate Qdrant collection/upsert/query behavior with live services
 Last Updated: 2026-10-01
 
 ## Repository status
@@ -29,7 +29,7 @@ Last Updated: 2026-10-01
 | 3 — Ingestion | [-] | Secure upload, storage port, document/job records | Owner-only validated uploads |
 | 4 — Processing | [-] | Job lifecycle, Docling, real status | API nonblocking and recoverable states |
 | 5 — Understand | [-] | Preview, tables, statistics, export | Parsed content inspectable/exportable |
-| 6 — Index | [ ] | Chunking, embeddings, Qdrant | Rebuildable isolated vectors |
+| 6 — Index | [-] | Chunking, embeddings, Qdrant | Rebuildable isolated vectors |
 | 7 — Converse | [ ] | Grounded RAG and citations | No-evidence/no-injection tests pass |
 | 8 — Frontend foundation | [ ] | Typed app shell, auth, API client | Accessible auth/upload/list baseline |
 | 9 — Experience integration | [ ] | Detail preview/chat/citations | End-to-end UX works |
@@ -56,6 +56,8 @@ Last Updated: 2026-10-01
 - [x] Docling integration isolated behind `DoclingProcessor`; processing dependency is optional for lightweight CI and installed by the backend image.
 - [x] Owner-scoped preview and markdown/JSON/HTML/TXT export projections implemented.
 - [x] Deterministic markdown statistics persisted with processed artifacts and surfaced in the frontend preview.
+- [x] Deterministic section-aware chunking, embedding boundary, stable point IDs, and mandatory Qdrant ownership payloads added.
+- [x] Optional Qdrant/Sentence Transformers dependencies and Compose Qdrant service configured.
 
 ## In progress
 
@@ -64,6 +66,7 @@ Last Updated: 2026-10-01
 - [-] Validate multipart upload transactionality and duplicate/idempotency behavior against live PostgreSQL.
 - [-] Run a real Docling conversion and verify queued → processing → ready/failed recovery against live PostgreSQL.
 - [-] Verify preview/export responses against real processed documents and table-bearing artifacts.
+- [-] Run live embedding generation and Qdrant upsert/query/rebuild tests with mandatory security filters.
 
 ## Blocked
 
@@ -73,7 +76,7 @@ Last Updated: 2026-10-01
 
 1. Run `docker compose up --build` on a Docker-enabled host.
 2. Confirm `alembic upgrade head` against the Compose PostgreSQL service.
-3. Complete live Phase 2–5 database/Docling tests, then start Phase 6 embeddings and vector indexing.
+3. Complete live Phase 2–6 database/Docling/Qdrant tests, then start Phase 7 grounded RAG.
 
 ## Known issues and technical debt
 
@@ -89,7 +92,7 @@ Last Updated: 2026-10-01
 
 ## Testing status
 
-- [x] Backend unit tests (health, auth boundary, password/JWT utilities, storage safety, parser boundary)
+- [x] Backend unit tests (health, auth boundary, password/JWT utilities, storage safety, parser boundary, chunking/point IDs)
 - [ ] Backend integration tests
 - [x] Frontend component tests
 - [ ] End-to-end test

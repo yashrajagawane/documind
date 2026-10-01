@@ -31,6 +31,10 @@ dev = [
 processing = [
   "docling==2.129.0",
 ]
+indexing = [
+  "qdrant-client==1.17.0",
+  "sentence-transformers==6.1.0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

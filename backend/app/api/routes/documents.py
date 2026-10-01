@@ -20,6 +20,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user_id
 from app.core.config import get_settings
 from app.db.session import get_db_session
+from app.indexing.qdrant import IndexingUnavailable
+from app.indexing.runner import index_artifact
 from app.models.document import Document
 from app.models.processing_job import ProcessingJob
 from app.processing.runner import run_processing_job
@@ -157,6 +159,23 @@ async def preview_document(
         metadata=artifact.get("metadata", {}),
         tables=artifact.get("tables", []),
     )
+
+
+@router.post("/{document_id}/index", status_code=202)
+async def index_document(
+    document_id: UUID,
+    user_id: UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db_session),
+) -> dict[str, int]:
+    document = await get_owned_document(document_id, user_id, db)
+    if document.status != "ready" or not document.structured_json:
+        raise HTTPException(status_code=409, detail="Document is not ready for indexing.")
+    markdown = str(document.structured_json.get("markdown", ""))
+    try:
+        count = await index_artifact(user_id, document.id, 1, markdown)
+    except IndexingUnavailable as error:
+        raise HTTPException(status_code=503, detail="Vector indexing is not configured.") from error
+    return {"indexed_chunks": count}
 
 
 @router.get("/{document_id}/export")

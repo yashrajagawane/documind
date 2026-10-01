@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     allowed_upload_extensions: list[str] = Field(
         default_factory=lambda: [".pdf", ".docx", ".xlsx", ".pptx", ".txt", ".csv", ".md"]
     )
+    qdrant_url: str = "http://localhost:6333"
+    qdrant_api_key: str | None = None
+    qdrant_collection: str = "documind_chunks"
+    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    embedding_dimensions: int = 384
 
     @field_validator("cors_origins", mode="before")
     @classmethod

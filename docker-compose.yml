@@ -34,5 +34,13 @@ services:
     ports:
       - "3000:3000"
 
+  qdrant:
+    image: qdrant/qdrant:v1.15.5
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
 volumes:
   postgres_data:
+  qdrant_data:
