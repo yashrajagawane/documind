@@ -1,6 +1,8 @@
 import asyncio
 import hashlib
 import os
+from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator
 from pathlib import Path, PurePosixPath
 from typing import BinaryIO
 from uuid import UUID
@@ -25,6 +27,13 @@ class LocalStorage:
 
     def path_for(self, key: str) -> Path:
         return self._resolve(key)
+
+    @asynccontextmanager
+    async def materialize(self, key: str) -> AsyncIterator[Path]:
+        path = self._resolve(key)
+        if not path.is_file():
+            raise StorageError("The requested private object does not exist.")
+        yield path
 
     async def save_stream(
         self, source: BinaryIO, key: str, max_bytes: int, suffix: str

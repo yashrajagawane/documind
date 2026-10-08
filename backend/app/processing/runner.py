@@ -48,8 +48,8 @@ async def run_processing_job(job_id: UUID) -> None:
         await db.commit()
 
     try:
-        source = storage.path_for(storage_key)
-        markdown = await asyncio.to_thread(processor.convert_to_markdown, source)
+        async with storage.materialize(storage_key) as source:
+            markdown = await asyncio.to_thread(processor.convert_to_markdown, source)
         async with AsyncSessionFactory() as db:
             finalized = await db.execute(
                 update(ProcessingJob)
