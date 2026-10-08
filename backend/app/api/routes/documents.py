@@ -5,7 +5,6 @@ from uuid import UUID
 
 from fastapi import (
     APIRouter,
-    BackgroundTasks,
     Depends,
     File,
     Header,
@@ -47,7 +46,6 @@ def safe_original_name(filename: str | None) -> tuple[str, str]:
 @router.post("", response_model=DocumentSummary, status_code=status.HTTP_201_CREATED)
 async def upload_document(
     response: Response,
-    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     user_id: UUID = Depends(get_current_user_id),
@@ -103,7 +101,7 @@ async def upload_document(
         await storage.delete(key)
         raise
     await db.refresh(document)
-    job_dispatcher.enqueue_processing(background_tasks, job.id)
+    await job_dispatcher.enqueue_processing(job.id)
     return document
 
 
@@ -231,7 +229,6 @@ async def delete_document(
 @router.post("/{document_id}/retry", response_model=DocumentSummary, status_code=202)
 async def retry_document(
     document_id: UUID,
-    background_tasks: BackgroundTasks,
     user_id: UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db_session),
 ) -> Document:
@@ -250,5 +247,5 @@ async def retry_document(
     db.add(job)
     await db.commit()
     await db.refresh(document)
-    job_dispatcher.enqueue_processing(background_tasks, job.id)
+    await job_dispatcher.enqueue_processing(job.id)
     return document
