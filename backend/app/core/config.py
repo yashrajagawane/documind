@@ -1,4 +1,5 @@
 from functools import lru_cache
+from ipaddress import ip_network
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -53,8 +54,10 @@ class Settings(BaseSettings):
     rate_limit_backend: str = "memory"
     rate_limit_redis_url: str | None = None
     rate_limit_key_prefix: str = "documind:rate-limit"
+    trusted_proxy_cidrs: list[str] = Field(default_factory=list)
     processing_lease_minutes: int = 30
     processing_max_attempts: int = 3
+    processing_dispatch_stale_seconds: int = 300
     metrics_token: str | None = None
 
     @field_validator("cors_origins", mode="before")
@@ -70,8 +73,27 @@ class Settings(BaseSettings):
         values = value.split(",") if isinstance(value, str) else value
         return [extension.strip().lower() for extension in values if extension.strip()]
 
+    @field_validator("trusted_proxy_cidrs", mode="before")
+    @classmethod
+    def parse_proxy_cidrs(cls, value: str | list[str]) -> list[str]:
+        values = value.split(",") if isinstance(value, str) else value
+        networks = [
+            str(ip_network(network.strip(), strict=False))
+            for network in values
+            if network.strip()
+        ]
+        return networks
+
     @model_validator(mode="after")
     def validate_deployment_secrets(self) -> "Settings":
+        if self.storage_backend not in {"local", "s3"}:
+            raise ValueError("STORAGE_BACKEND must be either local or s3.")
+        if self.rate_limit_backend not in {"memory", "redis"}:
+            raise ValueError("RATE_LIMIT_BACKEND must be either memory or redis.")
+        if self.processing_max_attempts < 1 or self.processing_lease_minutes < 1:
+            raise ValueError("Processing attempts and lease duration must be positive.")
+        if bool(self.s3_access_key_id) != bool(self.s3_secret_access_key):
+            raise ValueError("Configure both S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY, or neither.")
         if self.environment.lower() != "development":
             if self.jwt_secret_key == "dev-only-change-this-secret":
                 raise ValueError("JWT_SECRET_KEY must be changed outside development.")

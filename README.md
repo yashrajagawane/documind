@@ -16,6 +16,8 @@ Open http://localhost:3000. The backend is at http://localhost:8000; liveness is
 
 Compose starts PostgreSQL, Qdrant, the backend, and the Next.js frontend. The backend applies Alembic migrations before starting. Uploaded bytes stay under private `storage/` and are never returned as public URLs.
 
+Compose also starts Redis with append-only persistence, a Celery worker, and a Celery Beat scheduler. The scheduler republishes queued jobs whose dispatch was missed and recovers expired worker leases. The worker runs with concurrency 1 by default to bound parser memory use.
+
 ## Development checks
 
 Backend:
@@ -51,10 +53,12 @@ python -m pip install ".[processing,indexing,rag]"
 - Document queries always scope by the verified JWT user ID; raw storage keys never leave the backend.
 - Uploads enforce size, extension, magic-byte, checksum, and path-safety checks.
 - Qdrant payloads carry mandatory `user_id`, `document_id`, and artifact-version filters.
-- The V1 rate limiter is process-local. Before running multiple backend replicas, move its event store to a shared Redis or edge limiter.
-- Processing jobs are persisted before dispatch and carry a bounded worker lease. `app.processing.recovery.recover_expired_processing_leases` is the recovery hook for a future worker scheduler; the current in-process dispatcher cannot resume work after a process crash.
-- `GET /api/v1/metrics` is intentionally hidden unless `METRICS_TOKEN` is configured and supplied as `X-Metrics-Token`. These counters are process-local and are a migration seam, not a multi-replica monitoring system.
-- `STORAGE_BACKEND=local` is the only enabled adapter. The private-storage interface is ready for a reviewed S3-compatible adapter; do not select another backend until its credentials, encryption, lifecycle, and deletion semantics are implemented and tested.
+- The rate limiter supports process-local development mode and an atomic Redis sliding window. Compose uses Redis mode; set `RATE_LIMIT_BACKEND=redis` and `RATE_LIMIT_REDIS_URL` in deployed environments. Redis failures return 503 so protected routes are not silently left unthrottled.
+- Processing jobs are persisted before dispatch, atomically claimed with fencing tokens, and retried with bounded exponential delays. Celery acknowledges after task completion; the scheduler reconciles missed dispatches and expired leases. Keep worker concurrency low enough for the memory available to Docling.
+- `GET /api/v1/metrics` is intentionally hidden unless `METRICS_TOKEN` is configured and supplied as `X-Metrics-Token`. Job counts, retry totals, queue age, and average processing duration are read from PostgreSQL; rate-limit and dispatch error counters are process-local.
+- `STORAGE_BACKEND=local` is for development and Compose. Set `STORAGE_BACKEND=s3` and configure `S3_BUCKET`, `S3_REGION`, and credentials or the runtime credential chain to use the S3-compatible adapter. Uploads use server-side encryption by default, processing downloads objects into temporary files, and clients never receive object URLs or keys.
+- The S3 adapter is implemented, but provider-specific credentials, bucket policy, lifecycle, deletion behavior, and recovery still need live qualification before a public deployment.
+- Scrape every API replica and aggregate centrally; configure dashboards/alerts for queue age/depth, processing failures, rate-limit backend errors, and storage failures. The target deployment still needs its scraper, logs, dashboards, and alerts configured.
 - Never commit `.env`, API keys, uploaded files, model caches, or database volumes.
 
 See `docs/IMPLEMENTATION-PROGRESS.md` for phase status and `docs/MASTER-IMPLEMENTATION-PLAN.md` for the engineering contract.

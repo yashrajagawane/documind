@@ -2,10 +2,9 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
-from sqlalchemy import select, update
+from sqlalchemy import or_, select, update
 
 from app.core.config import get_settings
-from app.core.metrics import metrics
 from app.db.session import AsyncSessionFactory
 from app.models.document import Document
 from app.models.processing_job import ProcessingJob
@@ -22,7 +21,14 @@ async def run_processing_job(job_id: UUID) -> None:
         now = datetime.now(UTC)
         claim = await db.execute(
             update(ProcessingJob)
-            .where(ProcessingJob.id == job_id, ProcessingJob.status == "queued")
+            .where(
+                ProcessingJob.id == job_id,
+                ProcessingJob.status == "queued",
+                or_(
+                    ProcessingJob.next_attempt_at.is_(None),
+                    ProcessingJob.next_attempt_at <= now,
+                ),
+            )
             .values(
                 status="claimed",
                 attempt_count=ProcessingJob.attempt_count + 1,
@@ -30,6 +36,8 @@ async def run_processing_job(job_id: UUID) -> None:
                 lease_expires_at=now
                 + timedelta(minutes=get_settings().processing_lease_minutes),
                 lease_token=lease_token,
+                next_attempt_at=None,
+                dispatched_at=None,
             )
             .returning(ProcessingJob.document_id)
         )
@@ -59,6 +67,7 @@ async def run_processing_job(job_id: UUID) -> None:
                     completed_at=datetime.now(UTC),
                     lease_expires_at=None,
                     lease_token=None,
+                    next_attempt_at=None,
                 )
                 .returning(ProcessingJob.document_id)
             )
@@ -85,11 +94,10 @@ async def run_processing_job(job_id: UUID) -> None:
             document.processing_error = None
             document.processing_completed_at = datetime.now(UTC)
             await db.commit()
-        metrics.increment("documind_processing_jobs_total", outcome="completed")
     except ProcessingError as error:
         await mark_failed(job_id, lease_token, str(error))
     except Exception:
-        await mark_failed(job_id, lease_token, "PROCESSING_FAILED")
+        await retry_or_fail(job_id, lease_token, "PROCESSING_FAILED")
 
 
 async def mark_failed(job_id: UUID, lease_token: UUID, error_code: str) -> None:
@@ -115,4 +123,39 @@ async def mark_failed(job_id: UUID, lease_token: UUID, error_code: str) -> None:
             document.processing_stage = "failed"
             document.processing_error = error_code[:64]
         await db.commit()
-    metrics.increment("documind_processing_jobs_total", outcome="failed")
+
+
+async def retry_or_fail(job_id: UUID, lease_token: UUID, error_code: str) -> None:
+    settings = get_settings()
+    async with AsyncSessionFactory() as db:
+        job = await db.scalar(
+            select(ProcessingJob)
+            .where(ProcessingJob.id == job_id, ProcessingJob.lease_token == lease_token)
+            .with_for_update()
+        )
+        if job is None:
+            await db.rollback()
+            return
+        document = await db.get(Document, job.document_id)
+        job.last_error = error_code[:64]
+        job.lease_expires_at = None
+        job.lease_token = None
+        if job.attempt_count < settings.processing_max_attempts:
+            delay_seconds = min(300, 2 ** max(0, job.attempt_count - 1))
+            job.status = "queued"
+            job.next_attempt_at = datetime.now(UTC) + timedelta(seconds=delay_seconds)
+            job.dispatched_at = None
+            if document is not None:
+                document.status = "queued"
+                document.processing_stage = "queued"
+                document.processing_progress = 0
+                document.processing_error = None
+            outcome = "retry_scheduled"
+        else:
+            job.status = "failed"
+            if document is not None:
+                document.status = "failed"
+                document.processing_stage = "failed"
+                document.processing_error = error_code[:64]
+            outcome = "failed"
+        await db.commit()

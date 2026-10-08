@@ -1,7 +1,8 @@
 """Add a fencing token to processing job leases."""
 
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 revision = "20261009_0005"
 down_revision = "20261001_0004"
@@ -11,7 +12,9 @@ depends_on = None
 
 def upgrade() -> None:
     op.add_column("processing_jobs", sa.Column("lease_token", sa.Uuid(), nullable=True))
-    op.create_index("ix_processing_jobs_lease_token", "processing_jobs", ["lease_token"], unique=True)
+    op.create_index(
+        "ix_processing_jobs_lease_token", "processing_jobs", ["lease_token"], unique=True
+    )
 
 
 def downgrade() -> None:

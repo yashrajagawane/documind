@@ -1,7 +1,7 @@
 import asyncio
 import tempfile
-from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path, PurePosixPath
 from typing import BinaryIO
 
@@ -49,9 +49,14 @@ class S3Storage:
         safe_key = validate_object_key(key)
         with tempfile.TemporaryDirectory(prefix="documind-upload-") as directory:
             path = Path(directory) / "upload"
-            size, checksum = await asyncio.to_thread(
-                LocalStorage._save_stream, source, path, max_bytes, suffix
-            )
+            try:
+                size, checksum = await asyncio.to_thread(
+                    LocalStorage._save_stream, source, path, max_bytes, suffix
+                )
+            except StorageError:
+                raise
+            except OSError as error:
+                raise StorageError("The upload could not be staged safely.") from error
             extra_args: dict[str, str] = {}
             if self.server_side_encryption:
                 extra_args["ServerSideEncryption"] = self.server_side_encryption

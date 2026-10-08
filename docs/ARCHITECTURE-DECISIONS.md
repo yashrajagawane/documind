@@ -1,7 +1,7 @@
 # DocuMind — Architecture Decisions
 
 Status: Active  
-Last Updated: 2026-10-01
+Last Updated: 2026-10-09
 
 This is the permanent ADR log. New implementation must follow accepted ADRs; changes require a new ADR or a superseding record.
 
@@ -44,9 +44,9 @@ This is the permanent ADR log. New implementation must follow accepted ADRs; cha
 
 **Options:** Host on local disk; require object storage later; introduce a simple private storage port now.
 
-**Decision:** Implement `StorageService` interface from first upload. Local mounted storage is dev/local Compose. Hosted deployments use a private S3-compatible provider.
+**Decision:** Use one private-storage contract with local-volume and S3-compatible adapters. Local storage is for development/Compose; hosted deployments select private S3-compatible storage. The parser receives a temporary local path through a materialization context, so object keys and URLs remain server-side.
 
-**Reason/trade-offs:** A small seam prevents data loss/rewrite and keeps storage vendor-neutral. The initial implementation has two adapters to test.
+**Reason/trade-offs:** A small seam keeps storage vendor-neutral and prevents local-path assumptions in processing. Provider-specific bucket policy and lifecycle still need live validation.
 
 **Migration path:** Copy objects, update opaque storage keys/checksums, then switch adapter; clients never receive object keys.
 
@@ -65,7 +65,7 @@ This is the permanent ADR log. New implementation must follow accepted ADRs; cha
 
 **Migration path:** If collection sharding is ever needed, route through QdrantService; external API remains document scoped.
 
-## ADR-005 — Durable job contract now; V1 BackgroundTasks adapter only
+## ADR-005 — Durable job contract with in-process and Celery adapters
 
 **Status:** Accepted  
 **Date:** 2026-10-01
@@ -74,11 +74,11 @@ This is the permanent ADR log. New implementation must follow accepted ADRs; cha
 
 **Options:** Celery/Redis immediately; untracked BackgroundTasks; persisted job contract with BackgroundTasks adapter.
 
-**Decision:** Persist `processing_jobs`, lease/attempt state, and idempotent artifact/version work from the start. V1 adapter dispatches in-process after commit; sync CPU work uses bounded executor. V1.2 replaces only the adapter with durable queue/worker.
+**Decision:** Persist `processing_jobs`, lease/attempt state, fencing tokens, retry schedule, and dispatch timestamps. Local development can dispatch in-process; Compose/deployments can use Celery with Redis, late acknowledgements, one-message prefetch, and periodic PostgreSQL reconciliation. CPU-heavy parsing runs in a dedicated worker.
 
-**Reason/trade-offs:** Keeps V1 infrastructure light while preventing lifecycle design debt. V1 still cannot claim uninterrupted job execution across process loss.
+**Reason/trade-offs:** API replicas remain separate from parser concurrency, while PostgreSQL remains canonical for job state. Redis/Celery provide delivery, and fenced claims protect against duplicate messages and stale workers. Live broker outage, crash, and load behavior still requires deployment validation.
 
-**Migration path:** Add queue producer/consumer, preserve job IDs/state transitions/leases, run reconciliation during cutover.
+**Migration path:** Deploy Redis and worker services, then validate retries, lease recovery, and queue reconciliation before increasing replicas or concurrency.
 
 ## ADR-006 — Access JWT in memory; rotating refresh session in secure cookie
 

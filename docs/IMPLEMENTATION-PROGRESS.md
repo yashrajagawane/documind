@@ -2,8 +2,8 @@
 
 Overall Status: Phase 12 reliability and scale foundations in progress.
 Current Phase: Phase 12 — Reliability/scale
-Current Milestone: Validate a durable queue, object storage, and shared observability in a deployed environment
-Last Updated: 2026-10-01
+Current Milestone: Validate the worker, Redis limiter, and S3 adapter against live services
+Last Updated: 2026-10-09
 
 ## Repository status
 
@@ -65,6 +65,11 @@ Last Updated: 2026-10-01
 - [x] Processing dispatch is isolated behind an in-process adapter, so routes do not depend on a future queue vendor.
 - [x] Persisted processing claims now record attempts and a configurable lease; a recovery service requeues expired claims until the bounded retry budget is exhausted.
 - [x] Protected Prometheus-text metrics and a private-storage interface/factory establish migration seams without enabling unsafe external infrastructure by configuration alone.
+- [x] Generic async dispatch, Celery/Redis worker, late acknowledgement, bounded concurrency, periodic recovery, dispatch reconciliation, and fenced PostgreSQL job claims added.
+- [x] Processing retries use a bounded attempt budget and exponential delay; migrations `20261009_0005` and `20261009_0006` add fencing and dispatch metadata.
+- [x] S3-compatible private storage supports validated streaming upload, encryption options, temporary processing downloads, and deletion.
+- [x] Redis sliding-window rate limiting is shared across API replicas and fails closed on Redis errors.
+- [x] Operational metrics expose pending queue work, job outcomes, retries/recovery, rate-limit errors, and processing duration.
 
 ## In progress
 
@@ -78,7 +83,9 @@ Last Updated: 2026-10-01
 - [-] Validate the integrated document → preview → chat → citation flow with live services.
 - [-] Run the full Docker Compose, security, and live service release checklist on a Docker-enabled host.
 - [x] Release smoke-test script, backup/restore rehearsal checklist, and initial RAG evaluation cases added.
-- [-] Deploy and validate a shared queue consumer, Redis/edge limiter, S3-compatible private storage, and centralized metrics/alerts before horizontal scaling.
+- [-] Run backend/frontend checks and infrastructure integration tests on this branch.
+- [-] Validate provider bucket policy, encryption, multipart behavior, deletion, and restore against the selected live S3-compatible service.
+- [-] Configure centralized metrics/log aggregation and alert thresholds for the selected deployment.
 
 ## Blocked
 
@@ -86,17 +93,18 @@ Last Updated: 2026-10-01
 
 ## Next tasks
 
-1. Run `docker compose up --build` on a Docker-enabled host and complete the Phase 11 release checklist.
-2. Choose and provision the approved durable queue, shared limiter, object-storage, and metrics backends.
-3. Implement adapter-specific integration, failure-recovery, deletion, and multi-replica tests before enabling horizontal scaling.
+1. Run backend lint/tests/migration generation and frontend checks on this branch.
+2. Start Compose on a Docker-enabled host; validate worker crash recovery, delayed retries, and Redis outage behavior.
+3. Configure a private S3-compatible bucket and validate upload, parser staging, deletion, and restore.
+4. Add central metric scraping/logging and complete the Phase 11 smoke, backup/restore, security, and RAG evaluation runbook.
 
 ## Known issues and technical debt
 
 - Compose runtime and real PostgreSQL connectivity are unvalidated locally because Docker is unavailable.
 - Free hosted environments may not have sufficient memory for Docling and may sleep/delete state. Do not classify a free hosted deployment as production-ready.
-- V1 uses an in-process dispatcher. Job state and lease recovery are durable in PostgreSQL, but no process-crash resume occurs until a real queue worker consumes recovered `queued` jobs.
-- Metrics and rate-limit events remain process-local; use them only for a single instance until a shared observability/limiting backend is deployed.
-- Only local private storage is enabled. An S3-compatible adapter needs its own security, lifecycle, and migration validation.
+- In-process dispatch and memory rate limiting remain available for local development; Compose defaults to Celery and Redis.
+- Job state metrics are queried from PostgreSQL; request/dispatch counters remain per API process and need scraper aggregation and alerting.
+- S3 behavior depends on the selected provider; bucket policy, encryption, lifecycle, credentials, deletion, and restore have not been live-tested.
 
 ## Architecture changes
 

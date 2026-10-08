@@ -1,4 +1,5 @@
 from collections import defaultdict, deque
+from ipaddress import IPv4Address, IPv6Address, ip_address, ip_network
 from time import monotonic
 from uuid import uuid4
 
@@ -29,6 +30,7 @@ class InMemoryRateLimitMiddleware(BaseHTTPMiddleware):
         limits: dict[str, int],
         redis_url: str | None = None,
         key_prefix: str = "documind:rate-limit",
+        trusted_proxy_cidrs: list[str] | None = None,
     ) -> None:
         super().__init__(app)
         self.window_seconds = window_seconds
@@ -40,13 +42,14 @@ class InMemoryRateLimitMiddleware(BaseHTTPMiddleware):
 
             self.redis = Redis.from_url(redis_url, decode_responses=False)
         self.key_prefix = key_prefix
+        self.trusted_proxy_cidrs = tuple(ip_network(value) for value in trusted_proxy_cidrs or [])
 
     async def dispatch(self, request: Request, call_next):  # type: ignore[no-untyped-def]
         bucket = self._bucket(request)
         if bucket is None:
             return await call_next(request)
         now = monotonic()
-        key = (request.client.host if request.client else "unknown", bucket)
+        key = (self._client_ip(request), bucket)
         if self.redis is not None:
             try:
                 allowed, retry_after_ms = await self.redis.eval(
@@ -112,6 +115,30 @@ class InMemoryRateLimitMiddleware(BaseHTTPMiddleware):
         if request.method == "POST" and path.endswith("/chat"):
             return "chat"
         return None
+
+    def _client_ip(self, request: Request) -> str:
+        remote = request.client.host if request.client else "unknown"
+        try:
+            current = ip_address(remote)
+        except ValueError:
+            return remote
+        if not self.trusted_proxy_cidrs or not self._is_trusted(current):
+            return str(current)
+        forwarded = request.headers.get("x-forwarded-for", "")
+        for hop in reversed([value.strip() for value in forwarded.split(",") if value.strip()]):
+            if not self._is_trusted(current):
+                break
+            try:
+                current = ip_address(hop)
+            except ValueError:
+                break
+        return str(current)
+
+    def _is_trusted(self, address: IPv4Address | IPv6Address) -> bool:
+        return any(
+            address.version == network.version and address in network
+            for network in self.trusted_proxy_cidrs
+        )
 
 
 _SLIDING_WINDOW_SCRIPT = """
