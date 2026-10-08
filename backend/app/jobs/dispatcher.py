@@ -18,4 +18,17 @@ class InProcessJobDispatcher:
         asyncio.create_task(run_processing_job(job_id))
 
 
-job_dispatcher: JobDispatcher = InProcessJobDispatcher()
+def build_job_dispatcher() -> JobDispatcher:
+    from app.core.config import get_settings
+
+    settings = get_settings()
+    if settings.job_queue_backend == "inprocess":
+        return InProcessJobDispatcher()
+    if settings.job_queue_backend == "celery":
+        from app.jobs.celery_dispatcher import CeleryJobDispatcher
+
+        return CeleryJobDispatcher(settings.celery_broker_url or "")
+    raise ValueError(f"Unsupported job queue backend: {settings.job_queue_backend}")
+
+
+job_dispatcher = build_job_dispatcher()

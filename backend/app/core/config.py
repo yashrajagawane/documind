@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     jwt_refresh_expire_days: int = 14
     refresh_cookie_secure: bool = False
     storage_backend: str = "local"
+    job_queue_backend: str = "inprocess"
+    celery_broker_url: str | None = None
     storage_dir: str = "storage"
     max_upload_bytes: int = 25 * 1024 * 1024
     allowed_upload_extensions: list[str] = Field(
@@ -63,6 +65,8 @@ class Settings(BaseSettings):
                 raise ValueError("JWT_SECRET_KEY must be changed outside development.")
             if not self.refresh_cookie_secure:
                 raise ValueError("REFRESH_COOKIE_SECURE must be true outside development.")
+        if self.job_queue_backend == "celery" and not self.celery_broker_url:
+            raise ValueError("CELERY_BROKER_URL is required when JOB_QUEUE_BACKEND=celery.")
         return self
 
 
