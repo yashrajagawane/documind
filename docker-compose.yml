@@ -23,11 +23,33 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_started
+      redis:
+        condition: service_healthy
     command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
     ports:
       - "8000:8000"
     volumes:
       - ./storage:/app/storage
+
+  worker:
+    build: ./backend
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["celery", "-A", "app.jobs.celery_app:celery_app", "worker", "--loglevel=INFO", "--concurrency=1", "--queues=document-processing"]
+
+  scheduler:
+    build: ./backend
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["celery", "-A", "app.jobs.celery_app:celery_app", "beat", "--loglevel=INFO"]
 
   frontend:
     build: ./frontend
@@ -44,6 +66,18 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
 
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - redis_data:/data
+
 volumes:
   postgres_data:
   qdrant_data:
+  redis_data:
