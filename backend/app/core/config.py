@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     rate_limit_auth_requests: int = 10
     rate_limit_upload_requests: int = 20
     rate_limit_chat_requests: int = 30
+    rate_limit_backend: str = "memory"
+    rate_limit_redis_url: str | None = None
+    rate_limit_key_prefix: str = "documind:rate-limit"
     processing_lease_minutes: int = 30
     processing_max_attempts: int = 3
     metrics_token: str | None = None
@@ -78,6 +81,8 @@ class Settings(BaseSettings):
             raise ValueError("CELERY_BROKER_URL is required when JOB_QUEUE_BACKEND=celery.")
         if self.storage_backend == "s3" and not self.s3_bucket:
             raise ValueError("S3_BUCKET is required when STORAGE_BACKEND=s3.")
+        if self.rate_limit_backend == "redis" and not self.rate_limit_redis_url:
+            raise ValueError("RATE_LIMIT_REDIS_URL is required when RATE_LIMIT_BACKEND=redis.")
         return self
 
 
