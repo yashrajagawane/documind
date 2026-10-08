@@ -29,6 +29,9 @@ app.add_middleware(
         "upload": settings.rate_limit_upload_requests,
         "chat": settings.rate_limit_chat_requests,
     },
+    redis_url=(settings.rate_limit_redis_url if settings.rate_limit_backend == "redis" else None),
+    key_prefix=settings.rate_limit_key_prefix,
+    trusted_proxy_cidrs=settings.trusted_proxy_cidrs,
 )
 app.add_middleware(
     CORSMiddleware,

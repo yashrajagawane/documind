@@ -3,7 +3,6 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 
 from app.core.config import get_settings
-from app.core.metrics import metrics
 from app.db.session import AsyncSessionFactory
 from app.models.document import Document
 from app.models.processing_job import ProcessingJob
@@ -28,13 +27,17 @@ async def recover_expired_processing_leases(now: datetime | None = None) -> int:
                 ProcessingJob.lease_expires_at.is_not(None),
                 ProcessingJob.lease_expires_at < checked_at,
             )
+            .with_for_update(of=ProcessingJob, skip_locked=True)
         )
         for job, document in rows.all():
             outcome = recovery_outcome(job.attempt_count, settings.processing_max_attempts)
             job.status = outcome
             job.lease_expires_at = None
+            job.lease_token = None
             job.last_error = "PROCESSING_LEASE_EXPIRED"
             if outcome == "queued":
+                job.dispatched_at = None
+                job.next_attempt_at = checked_at
                 document.status = "queued"
                 document.processing_stage = "queued"
                 document.processing_progress = 0
@@ -43,7 +46,6 @@ async def recover_expired_processing_leases(now: datetime | None = None) -> int:
                 document.status = "failed"
                 document.processing_stage = "failed"
                 document.processing_error = "PROCESSING_LEASE_EXPIRED"
-            metrics.increment("documind_processing_lease_recoveries_total", outcome=outcome)
             recovered += 1
         if recovered:
             await db.commit()

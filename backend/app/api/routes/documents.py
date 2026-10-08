@@ -5,7 +5,6 @@ from uuid import UUID
 
 from fastapi import (
     APIRouter,
-    BackgroundTasks,
     Depends,
     File,
     Header,
@@ -22,12 +21,12 @@ from app.core.config import get_settings
 from app.db.session import get_db_session
 from app.indexing.qdrant import IndexingUnavailable
 from app.indexing.runner import index_artifact
-from app.jobs.dispatcher import job_dispatcher
+from app.jobs.service import dispatch_processing_job
 from app.models.document import Document
 from app.models.processing_job import ProcessingJob
 from app.schemas.documents import DocumentPreview, DocumentSummary
 from app.storage.factory import get_storage
-from app.storage.local import StorageError, build_upload_key
+from app.storage.local import StorageError, UploadRejected, UploadTooLarge, build_upload_key
 
 router = APIRouter(prefix="/documents")
 settings = get_settings()
@@ -47,7 +46,6 @@ def safe_original_name(filename: str | None) -> tuple[str, str]:
 @router.post("", response_model=DocumentSummary, status_code=status.HTTP_201_CREATED)
 async def upload_document(
     response: Response,
-    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     user_id: UUID = Depends(get_current_user_id),
@@ -69,8 +67,14 @@ async def upload_document(
         size, checksum = await storage.save_stream(
             file.file, key, settings.max_upload_bytes, suffix
         )
-    except StorageError as error:
+    except UploadTooLarge as error:
         raise HTTPException(status_code=413, detail=str(error)) from error
+    except UploadRejected as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except StorageError as error:
+        raise HTTPException(
+            status_code=503, detail="Private storage is temporarily unavailable."
+        ) from error
     if size == 0:
         await storage.delete(key)
         raise HTTPException(status_code=422, detail="The uploaded file is empty.")
@@ -103,7 +107,7 @@ async def upload_document(
         await storage.delete(key)
         raise
     await db.refresh(document)
-    job_dispatcher.enqueue_processing(background_tasks, job.id)
+    await dispatch_processing_job(job.id)
     return document
 
 
@@ -231,7 +235,6 @@ async def delete_document(
 @router.post("/{document_id}/retry", response_model=DocumentSummary, status_code=202)
 async def retry_document(
     document_id: UUID,
-    background_tasks: BackgroundTasks,
     user_id: UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db_session),
 ) -> Document:
@@ -250,5 +253,5 @@ async def retry_document(
     db.add(job)
     await db.commit()
     await db.refresh(document)
-    job_dispatcher.enqueue_processing(background_tasks, job.id)
+    await dispatch_processing_job(job.id)
     return document
