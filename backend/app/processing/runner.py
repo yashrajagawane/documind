@@ -1,8 +1,8 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app.core.config import get_settings
 from app.core.metrics import metrics
@@ -17,32 +17,59 @@ storage = get_storage()
 
 
 async def run_processing_job(job_id: UUID) -> None:
+    lease_token = uuid4()
     async with AsyncSessionFactory() as db:
-        row = await db.execute(
-            select(ProcessingJob, Document)
-            .join(Document, Document.id == ProcessingJob.document_id)
-            .where(ProcessingJob.id == job_id)
-        )
-        pair = row.one_or_none()
-        if not pair:
-            return
-        job, document = pair
-        if job.status != "queued":
-            return
         now = datetime.now(UTC)
-        job.status = "claimed"
-        job.attempt_count += 1
-        job.started_at = now
-        job.lease_expires_at = now + timedelta(minutes=get_settings().processing_lease_minutes)
+        claim = await db.execute(
+            update(ProcessingJob)
+            .where(ProcessingJob.id == job_id, ProcessingJob.status == "queued")
+            .values(
+                status="claimed",
+                attempt_count=ProcessingJob.attempt_count + 1,
+                started_at=now,
+                lease_expires_at=now
+                + timedelta(minutes=get_settings().processing_lease_minutes),
+                lease_token=lease_token,
+            )
+            .returning(ProcessingJob.document_id)
+        )
+        document_id = claim.scalar_one_or_none()
+        if document_id is None:
+            return
+        document = await db.get(Document, document_id)
+        if document is None:
+            await db.rollback()
+            return
+        storage_key = document.storage_key
         document.status = "processing"
         document.processing_stage = "extracting"
         document.processing_progress = 25
         document.processing_started_at = now
         await db.commit()
 
-        try:
-            source = storage.path_for(document.storage_key)
-            markdown = await asyncio.to_thread(processor.convert_to_markdown, source)
+    try:
+        source = storage.path_for(storage_key)
+        markdown = await asyncio.to_thread(processor.convert_to_markdown, source)
+        async with AsyncSessionFactory() as db:
+            finalized = await db.execute(
+                update(ProcessingJob)
+                .where(ProcessingJob.id == job_id, ProcessingJob.lease_token == lease_token)
+                .values(
+                    status="completed",
+                    completed_at=datetime.now(UTC),
+                    lease_expires_at=None,
+                    lease_token=None,
+                )
+                .returning(ProcessingJob.document_id)
+            )
+            document_id = finalized.scalar_one_or_none()
+            if document_id is None:
+                await db.rollback()
+                return
+            document = await db.get(Document, document_id)
+            if document is None:
+                await db.rollback()
+                return
             document.structured_json = {
                 "markdown": markdown,
                 "metadata": {
@@ -57,23 +84,35 @@ async def run_processing_job(job_id: UUID) -> None:
             document.processing_progress = 100
             document.processing_error = None
             document.processing_completed_at = datetime.now(UTC)
-            job.status = "completed"
-            job.completed_at = datetime.now(UTC)
-            job.lease_expires_at = None
             await db.commit()
-            metrics.increment("documind_processing_jobs_total", outcome="completed")
-        except ProcessingError as error:
-            await mark_failed(db, job, document, str(error))
-        except Exception:
-            await mark_failed(db, job, document, "PROCESSING_FAILED")
+        metrics.increment("documind_processing_jobs_total", outcome="completed")
+    except ProcessingError as error:
+        await mark_failed(job_id, lease_token, str(error))
+    except Exception:
+        await mark_failed(job_id, lease_token, "PROCESSING_FAILED")
 
 
-async def mark_failed(db, job: ProcessingJob, document: Document, error_code: str) -> None:
-    job.status = "failed"
-    job.last_error = error_code[:64]
-    job.lease_expires_at = None
-    document.status = "failed"
-    document.processing_stage = "failed"
-    document.processing_error = error_code[:64]
-    await db.commit()
+async def mark_failed(job_id: UUID, lease_token: UUID, error_code: str) -> None:
+    async with AsyncSessionFactory() as db:
+        failed = await db.execute(
+            update(ProcessingJob)
+            .where(ProcessingJob.id == job_id, ProcessingJob.lease_token == lease_token)
+            .values(
+                status="failed",
+                last_error=error_code[:64],
+                lease_expires_at=None,
+                lease_token=None,
+            )
+            .returning(ProcessingJob.document_id)
+        )
+        document_id = failed.scalar_one_or_none()
+        if document_id is None:
+            await db.rollback()
+            return
+        document = await db.get(Document, document_id)
+        if document is not None:
+            document.status = "failed"
+            document.processing_stage = "failed"
+            document.processing_error = error_code[:64]
+        await db.commit()
     metrics.increment("documind_processing_jobs_total", outcome="failed")

@@ -28,6 +28,7 @@ class ProcessingJob(Base):
     status: Mapped[str] = mapped_column(String(32), default="queued", nullable=False, index=True)
     attempt_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    lease_token: Mapped[uuid.UUID | None] = mapped_column(nullable=True, unique=True)
     last_error: Mapped[str | None] = mapped_column(String(64))
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

@@ -33,6 +33,7 @@ async def recover_expired_processing_leases(now: datetime | None = None) -> int:
             outcome = recovery_outcome(job.attempt_count, settings.processing_max_attempts)
             job.status = outcome
             job.lease_expires_at = None
+            job.lease_token = None
             job.last_error = "PROCESSING_LEASE_EXPIRED"
             if outcome == "queued":
                 document.status = "queued"
