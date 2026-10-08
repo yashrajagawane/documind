@@ -21,6 +21,15 @@ class Settings(BaseSettings):
     jwt_refresh_expire_days: int = 14
     refresh_cookie_secure: bool = False
     storage_backend: str = "local"
+    s3_bucket: str | None = None
+    s3_region: str = "us-east-1"
+    s3_endpoint_url: str | None = None
+    s3_access_key_id: str | None = None
+    s3_secret_access_key: str | None = None
+    s3_session_token: str | None = None
+    s3_force_path_style: bool = False
+    s3_server_side_encryption: str = "AES256"
+    s3_kms_key_id: str | None = None
     job_queue_backend: str = "inprocess"
     celery_broker_url: str | None = None
     storage_dir: str = "storage"
@@ -67,6 +76,8 @@ class Settings(BaseSettings):
                 raise ValueError("REFRESH_COOKIE_SECURE must be true outside development.")
         if self.job_queue_backend == "celery" and not self.celery_broker_url:
             raise ValueError("CELERY_BROKER_URL is required when JOB_QUEUE_BACKEND=celery.")
+        if self.storage_backend == "s3" and not self.s3_bucket:
+            raise ValueError("S3_BUCKET is required when STORAGE_BACKEND=s3.")
         return self
 
 
