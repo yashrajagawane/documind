@@ -63,9 +63,18 @@ async def run_processing_job(job_id: UUID) -> None:
             from app.indexing.qdrant import IndexingUnavailable
             from app.indexing.runner import index_artifact
 
-            await index_artifact(user_id, document_id, 1, parsed.markdown)
-        except (IndexingUnavailable, Exception):
-            pass
+            try:
+                await index_artifact(user_id, document_id, 1, parsed.markdown)
+            except IndexingUnavailable as error:
+                # Log indexing service not available; continue without indexing.
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error("Vector indexing unavailable: %s", error)
+            except Exception as exc:
+                # Unexpected errors during indexing should be logged for debugging.
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.exception("Unexpected error during indexing")
         async with AsyncSessionFactory() as db:
             finalized = await db.execute(
                 update(ProcessingJob)
