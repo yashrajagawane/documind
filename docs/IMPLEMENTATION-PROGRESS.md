@@ -82,6 +82,8 @@ Last Updated: 2026-10-09
 - [x] Markdown formatting, code block syntax styling, and copy buttons implemented in `ChatPanel` and `DocumentPreview`.
 - [x] Interactive citation navigation: clicking citation chips scrolls and highlights the matching document section in `DocumentPreview`.
 - [x] Formatted vs Raw Source toggle added to `DocumentPreview` alongside table copying.
+- [x] Token streaming (SSE): Server-Sent Events endpoint `POST /documents/{document_id}/chat/stream` added to FastAPI with Gemini async streaming generator.
+- [x] Frontend real-time streaming: `apiStreamSSE` client and token accumulator in `HomePage` rendering answers dynamically token-by-token.
 
 ## In progress
 

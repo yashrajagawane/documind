@@ -7,9 +7,9 @@ import { ChatPanel } from "@/components/ChatPanel";
 import { DocumentList } from "@/components/DocumentList";
 import { DocumentPreview } from "@/components/DocumentPreview";
 import { UploadZone } from "@/components/UploadZone";
-import { apiDownload, apiFetch } from "@/lib/api";
+import { apiDownload, apiFetch, apiStreamSSE } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import type { ChatMessage, ChatResponse, Citation, DocumentPreview as DocumentPreviewType, DocumentSummary } from "@/lib/types";
+import type { ChatMessage, Citation, DocumentPreview as DocumentPreviewType, DocumentSummary } from "@/lib/types";
 
 export default function HomePage() {
   const { accessToken, user, isLoading, signIn, register, signOut } = useAuth();
@@ -231,30 +231,44 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
     };
     setMessages((prev) => [...prev, userMessage]);
 
+    const assistantId = crypto.randomUUID();
+    const assistantMessage: ChatMessage = {
+      id: assistantId,
+      role: "assistant",
+      content: "",
+      citations: [],
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, assistantMessage]);
+
     try {
       const history = messages.map((m) => ({
         role: m.role,
         content: m.content,
       }));
 
-      const response = await apiFetch<ChatResponse>(
-        `/documents/${preview.id}/chat`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: questionText, history }),
-        },
+      for await (const { event, data } of apiStreamSSE(
+        `/documents/${preview.id}/chat/stream`,
+        { question: questionText, history },
         accessToken
-      );
-
-      const assistantMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: response.answer,
-        citations: response.citations,
-        createdAt: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
+      )) {
+        if (event === "citations") {
+          const parsed = JSON.parse(data) as { citations: Citation[] };
+          setMessages((prev) =>
+            prev.map((m) => (m.id === assistantId ? { ...m, citations: parsed.citations } : m))
+          );
+        } else if (event === "token") {
+          const parsed = JSON.parse(data) as { token: string };
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId ? { ...m, content: m.content + parsed.token } : m
+            )
+          );
+        } else if (event === "error") {
+          const parsed = JSON.parse(data) as { error: string };
+          setMessage(parsed.error);
+        }
+      }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "The question could not be answered.");
     } finally {
