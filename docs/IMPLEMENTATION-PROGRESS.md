@@ -70,6 +70,12 @@ Last Updated: 2026-10-09
 - [x] S3-compatible private storage supports validated streaming upload, encryption options, temporary processing downloads, and deletion.
 - [x] Redis sliding-window rate limiting is shared across API replicas and fails closed on Redis errors.
 - [x] Operational metrics expose pending queue work, job outcomes, retries/recovery, rate-limit errors, and processing duration.
+- [x] Docling table extraction implemented; structured tables saved in `structured_json["tables"]` with preview tab support.
+- [x] Frontend decomposed into modular components (`StatusBadge`, `UploadZone`, `DocumentList`, `DocumentPreview`, `ChatPanel`).
+- [x] Real-time frontend status polling implemented for in-progress processing jobs.
+- [x] Multi-turn session conversation history with citation references added.
+- [x] Automated RAG evaluation harness (`tests/evals/evaluator.py`) implemented; 3/3 evaluation cases pass.
+- [x] S3 storage and key validation unit tests and export projection tests added.
 
 ## In progress
 

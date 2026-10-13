@@ -3,9 +3,13 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 
+import { ChatPanel } from "@/components/ChatPanel";
+import { DocumentList } from "@/components/DocumentList";
+import { DocumentPreview } from "@/components/DocumentPreview";
+import { UploadZone } from "@/components/UploadZone";
 import { apiDownload, apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import type { ChatResponse, DocumentPreview, DocumentSummary } from "@/lib/types";
+import type { ChatMessage, ChatResponse, DocumentPreview as DocumentPreviewType, DocumentSummary } from "@/lib/types";
 
 export default function HomePage() {
   const { accessToken, user, isLoading, signIn, register, signOut } = useAuth();
@@ -29,7 +33,13 @@ export default function HomePage() {
     }
   };
 
-  if (isLoading) return <main className="auth-shell"><p>Restoring your session…</p></main>;
+  if (isLoading) {
+    return (
+      <main className="auth-shell">
+        <p>Restoring your session…</p>
+      </main>
+    );
+  }
 
   if (user) {
     return (
@@ -39,7 +49,9 @@ export default function HomePage() {
           <h1 id="welcome-heading">Your workspace is ready.</h1>
           <p className="muted">Signed in as {user.email}. Upload a private document to begin.</p>
           <DocumentWorkspace accessToken={accessToken} />
-          <button className="button" type="button" onClick={() => void signOut()}>Sign out</button>
+          <button className="button" type="button" onClick={() => void signOut()} style={{ marginTop: "1.5rem" }}>
+            Sign out
+          </button>
         </section>
       </main>
     );
@@ -53,13 +65,38 @@ export default function HomePage() {
         <p className="muted">Secure document intelligence starts with a private account.</p>
         <form onSubmit={submit}>
           <label htmlFor="email">Email</label>
-          <input id="email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
           <label htmlFor="password">Password</label>
-          <input id="password" type="password" minLength={12} autoComplete={mode === "login" ? "current-password" : "new-password"} required value={password} onChange={(event) => setPassword(event.target.value)} />
-          {error && <p className="form-error" role="alert">{error}</p>}
-          <button className="button" type="submit" disabled={submitting}>{submitting ? "Working…" : mode === "login" ? "Sign in" : "Create account"}</button>
+          <input
+            id="password"
+            type="password"
+            minLength={12}
+            autoComplete={mode === "login" ? "current-password" : "new-password"}
+            required
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
+          <button className="button" type="submit" disabled={submitting}>
+            {submitting ? "Working…" : mode === "login" ? "Sign in" : "Create account"}
+          </button>
         </form>
-        <button className="link-button" type="button" onClick={() => setMode(mode === "login" ? "register" : "login")}>
+        <button
+          className="link-button"
+          type="button"
+          onClick={() => setMode(mode === "login" ? "register" : "login")}
+        >
           {mode === "login" ? "Need an account? Register" : "Already have an account? Sign in"}
         </button>
       </section>
@@ -69,71 +106,148 @@ export default function HomePage() {
 
 function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | null }>) {
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
-  const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [preview, setPreview] = useState<DocumentPreview | null>(null);
-  const [question, setQuestion] = useState("");
-  const [chat, setChat] = useState<ChatResponse | null>(null);
+  const [preview, setPreview] = useState<DocumentPreviewType | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [asking, setAsking] = useState(false);
 
+  // Initial fetch on authentication
   useEffect(() => {
     if (!accessToken) return;
+    let isCancelled = false;
+
     apiFetch<DocumentSummary[]>("/documents", {}, accessToken)
-      .then(setDocuments)
-      .catch((error: unknown) => setMessage(error instanceof Error ? error.message : "Could not load documents."))
-      .finally(() => setLoading(false));
+      .then((data) => {
+        if (!isCancelled) setDocuments(data);
+      })
+      .catch((error: unknown) => {
+        if (!isCancelled) {
+          setMessage(error instanceof Error ? error.message : "Could not load documents.");
+        }
+      })
+      .finally(() => {
+        if (!isCancelled) setLoading(false);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
   }, [accessToken]);
 
-  const upload = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!file || !accessToken) return;
+  // Live polling: if any document is in non-terminal state, poll every 2.5 seconds
+  const hasPending = documents.some(
+    (doc) => doc.status !== "ready" && doc.status !== "failed"
+  );
+
+  useEffect(() => {
+    if (!hasPending || !accessToken) return;
+
+    const timer = setInterval(() => {
+      apiFetch<DocumentSummary[]>("/documents", {}, accessToken)
+        .then(setDocuments)
+        .catch(() => undefined);
+    }, 2500);
+
+    return () => clearInterval(timer);
+  }, [hasPending, accessToken]);
+
+  const handleUpload = async (file: File) => {
+    if (!accessToken) return;
     setMessage(null);
     const formData = new FormData();
     formData.append("file", file);
-    try {
-      const document = await apiFetch<DocumentSummary>("/documents", {
+
+    const uploaded = await apiFetch<DocumentSummary>(
+      "/documents",
+      {
         method: "POST",
         body: formData,
         headers: { "Idempotency-Key": crypto.randomUUID() },
-      }, accessToken);
-      setDocuments((current) => [document, ...current.filter((item) => item.id !== document.id)]);
-      setFile(null);
-      event.currentTarget.reset();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Upload failed.");
-    }
+      },
+      accessToken
+    );
+
+    setDocuments((current) => [
+      uploaded,
+      ...current.filter((item) => item.id !== uploaded.id),
+    ]);
   };
 
-  const remove = async (id: string) => {
+  const handleRemove = async (id: string) => {
     if (!accessToken) return;
     await apiFetch<void>(`/documents/${id}`, { method: "DELETE" }, accessToken);
     setDocuments((current) => current.filter((document) => document.id !== id));
-    if (preview?.id === id) setPreview(null);
+    if (preview?.id === id) {
+      setPreview(null);
+      setMessages([]);
+    }
   };
 
-  const showPreview = async (id: string) => {
+  const handleRetry = async (id: string) => {
     if (!accessToken) return;
     try {
-      setPreview(await apiFetch<DocumentPreview>(`/documents/${id}/preview`, {}, accessToken));
-      setChat(null);
+      const retried = await apiFetch<DocumentSummary>(
+        `/documents/${id}/retry`,
+        { method: "POST" },
+        accessToken
+      );
+      setDocuments((current) =>
+        current.map((doc) => (doc.id === id ? retried : doc))
+      );
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not retry document processing.");
+    }
+  };
+
+  const handlePreview = async (id: string) => {
+    if (!accessToken) return;
+    try {
+      const previewData = await apiFetch<DocumentPreviewType>(
+        `/documents/${id}/preview`,
+        {},
+        accessToken
+      );
+      setPreview(previewData);
+      setMessages([]);
       setMessage(null);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Preview is not ready.");
     }
   };
 
-  const ask = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!accessToken || !preview || !question.trim()) return;
+  const handleAsk = async (questionText: string) => {
+    if (!accessToken || !preview) return;
     setAsking(true);
     setMessage(null);
+
+    const userMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: questionText,
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+
     try {
-      setChat(await apiFetch<ChatResponse>(`/documents/${preview.id}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: question.trim() }),
-      }, accessToken));
+      const response = await apiFetch<ChatResponse>(
+        `/documents/${preview.id}/chat`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: questionText }),
+        },
+        accessToken
+      );
+
+      const assistantMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: response.answer,
+        citations: response.citations,
+        createdAt: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "The question could not be answered.");
     } finally {
@@ -141,9 +255,12 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
     }
   };
 
-  const download = async (format: string) => {
+  const handleDownload = async (format: string) => {
     if (!accessToken || !preview) return;
-    const blob = await apiDownload(`/documents/${preview.id}/export?format=${format}`, accessToken);
+    const blob = await apiDownload(
+      `/documents/${preview.id}/export?format=${format}`,
+      accessToken
+    );
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
@@ -154,18 +271,36 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
 
   return (
     <div className="document-workspace">
-      <form className="upload-form" onSubmit={upload}>
-        <label htmlFor="document-file">Upload a document</label>
-        <input id="document-file" type="file" accept=".pdf,.docx,.xlsx,.pptx,.txt,.csv,.md" required onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
-        <button className="button" type="submit" disabled={!file}>Upload privately</button>
-      </form>
-      {message && <p className="form-error" role="alert">{message}</p>}
-      {loading ? <p className="muted">Loading your documents…</p> : documents.length === 0 ? <p className="muted">No documents yet.</p> : (
-        <ul className="document-list">
-          {documents.map((document) => <li key={document.id}><span><strong>{document.original_name}</strong><small>{document.status}</small></span><span className="document-actions"><button className="link-button" type="button" disabled={document.status !== "ready"} onClick={() => void showPreview(document.id)}>Preview</button><button className="link-button" type="button" onClick={() => void remove(document.id)}>Delete</button></span></li>)}
-        </ul>
+      <UploadZone onUpload={handleUpload} />
+
+      {message && (
+        <p className="form-error" role="alert" style={{ marginTop: "1rem" }}>
+          {message}
+        </p>
       )}
-      {preview && <article className="preview-panel" aria-labelledby="preview-heading"><div className="preview-header"><h2 id="preview-heading">{preview.original_name}</h2><span>{preview.metadata.word_count ?? 0} words</span></div><pre>{preview.markdown}</pre><div className="export-actions"><button className="link-button" type="button" onClick={() => void download("markdown")}>Markdown</button><button className="link-button" type="button" onClick={() => void download("json")}>JSON</button><button className="link-button" type="button" onClick={() => void download("html")}>HTML</button></div><form className="chat-form" onSubmit={ask}><label htmlFor="document-question">Ask about this document</label><textarea id="document-question" rows={3} value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask a question grounded in the document…" /><button className="button" type="submit" disabled={asking || !question.trim()}>{asking ? "Searching…" : "Ask question"}</button></form>{chat && <div className="chat-answer"><p>{chat.answer}</p>{chat.citations.length > 0 && <div className="citation-list"><strong>Sources</strong>{chat.citations.map((citation) => <small key={citation.chunk_id}>{citation.chunk_id}{citation.section ? ` · ${citation.section}` : ""} · score {citation.score.toFixed(2)}</small>)}</div>}</div>}</article>}
+
+      <DocumentList
+        documents={documents}
+        loading={loading}
+        selectedDocumentId={preview?.id}
+        onPreview={(id) => void handlePreview(id)}
+        onDelete={(id) => void handleRemove(id)}
+        onRetry={(id) => void handleRetry(id)}
+      />
+
+      {preview && (
+        <>
+          <DocumentPreview preview={preview} onDownload={(format) => void handleDownload(format)} />
+          <ChatPanel
+            documentId={preview.id}
+            documentName={preview.original_name}
+            messages={messages}
+            asking={asking}
+            onAsk={handleAsk}
+            onClearHistory={() => setMessages([])}
+          />
+        </>
+      )}
     </div>
   );
 }

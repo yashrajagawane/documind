@@ -48,3 +48,11 @@ export type ChatResponse = {
   answer: string;
   citations: ChatCitation[];
 };
+
+export type ChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  citations?: ChatCitation[];
+  createdAt: string;
+};

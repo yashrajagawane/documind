@@ -57,7 +57,7 @@ async def run_processing_job(job_id: UUID) -> None:
 
     try:
         async with storage.materialize(storage_key) as source:
-            markdown = await asyncio.to_thread(processor.convert_to_markdown, source)
+            parsed = await asyncio.to_thread(processor.process, source)
         async with AsyncSessionFactory() as db:
             finalized = await db.execute(
                 update(ProcessingJob)
@@ -80,13 +80,13 @@ async def run_processing_job(job_id: UUID) -> None:
                 await db.rollback()
                 return
             document.structured_json = {
-                "markdown": markdown,
+                "markdown": parsed.markdown,
                 "metadata": {
-                    "character_count": len(markdown),
-                    "line_count": len(markdown.splitlines()),
-                    "word_count": len(markdown.split()),
+                    "character_count": len(parsed.markdown),
+                    "line_count": len(parsed.markdown.splitlines()),
+                    "word_count": len(parsed.markdown.split()),
                 },
-                "tables": [],
+                "tables": parsed.tables,
             }
             document.status = "ready"
             document.processing_stage = "completed"
