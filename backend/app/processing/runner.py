@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
@@ -10,6 +11,8 @@ from app.models.document import Document
 from app.models.processing_job import ProcessingJob
 from app.processing.docling import DoclingProcessor, ProcessingError
 from app.storage.factory import get_storage
+
+logger = logging.getLogger(__name__)
 
 processor = DoclingProcessor()
 storage = get_storage()
@@ -33,8 +36,7 @@ async def run_processing_job(job_id: UUID) -> None:
                 status="claimed",
                 attempt_count=ProcessingJob.attempt_count + 1,
                 started_at=now,
-                lease_expires_at=now
-                + timedelta(minutes=get_settings().processing_lease_minutes),
+                lease_expires_at=now + timedelta(minutes=get_settings().processing_lease_minutes),
                 lease_token=lease_token,
                 next_attempt_at=None,
                 dispatched_at=None,
@@ -59,21 +61,14 @@ async def run_processing_job(job_id: UUID) -> None:
     try:
         async with storage.materialize(storage_key) as source:
             parsed = await asyncio.to_thread(processor.process, source)
-        try:
             from app.indexing.qdrant import IndexingUnavailable
             from app.indexing.runner import index_artifact
 
             try:
                 await index_artifact(user_id, document_id, 1, parsed.markdown)
             except IndexingUnavailable as error:
-                # Log indexing service not available; continue without indexing.
-                import logging
-                logger = logging.getLogger(__name__)
                 logger.error("Vector indexing unavailable: %s", error)
             except Exception as exc:
-                # Unexpected errors during indexing should be logged for debugging.
-                import logging
-                logger = logging.getLogger(__name__)
                 logger.exception("Unexpected error during indexing")
         async with AsyncSessionFactory() as db:
             finalized = await db.execute(
