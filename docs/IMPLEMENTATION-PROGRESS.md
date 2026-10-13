@@ -76,6 +76,9 @@ Last Updated: 2026-10-09
 - [x] Multi-turn session conversation history with citation references added.
 - [x] Automated RAG evaluation harness (`tests/evals/evaluator.py`) implemented; 3/3 evaluation cases pass.
 - [x] S3 storage and key validation unit tests and export projection tests added.
+- [x] Auto-chain vector indexing in processing worker (`runner.py`) so parsed documents become queryable without manual intervention.
+- [x] Vector point cleanup on document deletion (`delete_document_points` in `QdrantIndexer`) to prevent orphaned vectors.
+- [x] Backend multi-turn conversation grounding support (`ChatRequest.history`, `build_grounded_prompt(history=...)`) with frontend integration and unit tests.
 
 ## In progress
 

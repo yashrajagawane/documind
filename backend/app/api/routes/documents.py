@@ -227,6 +227,12 @@ async def delete_document(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found.")
     await storage.delete(document.storage_key)
+    try:
+        from app.indexing.qdrant import IndexingUnavailable, QdrantIndexer
+
+        await QdrantIndexer().delete_document_points(user_id, document_id)
+    except (IndexingUnavailable, Exception):
+        pass
     await db.delete(document)
     await db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -49,8 +49,11 @@ async def chat(
     if not chunks:
         return ChatResponse(answer=NO_EVIDENCE_MESSAGE, citations=[])
 
+    history_tuples = [(item.role, item.content) for item in request.history] if request.history else None
     try:
-        answer = await GeminiGenerator().answer(build_grounded_prompt(request.question, chunks))
+        answer = await GeminiGenerator().answer(
+            build_grounded_prompt(request.question, chunks, history=history_tuples)
+        )
     except GenerationUnavailable as error:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

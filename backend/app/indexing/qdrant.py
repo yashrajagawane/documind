@@ -87,6 +87,37 @@ class QdrantIndexer:
         finally:
             await client.close()
 
+    async def delete_document_points(self, user_id: UUID, document_id: UUID) -> None:
+        try:
+            from qdrant_client import AsyncQdrantClient, models
+        except ImportError as error:
+            raise IndexingUnavailable("VECTOR_INDEX_UNAVAILABLE") from error
+
+        client = AsyncQdrantClient(
+            url=self.settings.qdrant_url, api_key=self.settings.qdrant_api_key
+        )
+        try:
+            exists = await client.collection_exists(self.settings.qdrant_collection)
+            if not exists:
+                return
+            await client.delete(
+                collection_name=self.settings.qdrant_collection,
+                points_selector=models.FilterSelector(
+                    filter=models.Filter(
+                        must=[
+                            models.FieldCondition(
+                                key="user_id", match=models.MatchValue(value=str(user_id))
+                            ),
+                            models.FieldCondition(
+                                key="document_id", match=models.MatchValue(value=str(document_id))
+                            ),
+                        ]
+                    )
+                ),
+            )
+        finally:
+            await client.close()
+
     async def search(
         self, user_id: UUID, document_id: UUID, query: str, limit: int, min_score: float
     ) -> list[RetrievedPoint]:

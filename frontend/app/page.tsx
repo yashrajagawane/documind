@@ -230,12 +230,17 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
     setMessages((prev) => [...prev, userMessage]);
 
     try {
+      const history = messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+
       const response = await apiFetch<ChatResponse>(
         `/documents/${preview.id}/chat`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: questionText }),
+          body: JSON.stringify({ question: questionText, history }),
         },
         accessToken
       );

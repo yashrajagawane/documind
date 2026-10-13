@@ -21,3 +21,17 @@ def test_retrieved_chunk_has_server_owned_citation_identity() -> None:
 
     assert chunk.chunk_id == "chunk-000001"
     assert chunk.page == 3
+
+
+def test_grounded_prompt_includes_conversation_history() -> None:
+    prompt = build_grounded_prompt(
+        "What about the second paragraph?",
+        [RetrievedChunk("chunk-2", "Second paragraph content.", "Body", 0.85)],
+        history=[("user", "Summarize the document"), ("assistant", "The document is an overview.")],
+    )
+
+    assert "<CONVERSATION_HISTORY>" in prompt
+    assert "User: Summarize the document" in prompt
+    assert "Assistant: The document is an overview." in prompt
+    assert "</CONVERSATION_HISTORY>" in prompt
+    assert "<USER_QUESTION>\nWhat about the second paragraph?\n</USER_QUESTION>" in prompt

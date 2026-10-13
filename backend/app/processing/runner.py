@@ -49,6 +49,7 @@ async def run_processing_job(job_id: UUID) -> None:
             await db.rollback()
             return
         storage_key = document.storage_key
+        user_id = document.user_id
         document.status = "processing"
         document.processing_stage = "extracting"
         document.processing_progress = 25
@@ -58,6 +59,13 @@ async def run_processing_job(job_id: UUID) -> None:
     try:
         async with storage.materialize(storage_key) as source:
             parsed = await asyncio.to_thread(processor.process, source)
+        try:
+            from app.indexing.qdrant import IndexingUnavailable
+            from app.indexing.runner import index_artifact
+
+            await index_artifact(user_id, document_id, 1, parsed.markdown)
+        except (IndexingUnavailable, Exception):
+            pass
         async with AsyncSessionFactory() as db:
             finalized = await db.execute(
                 update(ProcessingJob)
