@@ -84,6 +84,7 @@ Last Updated: 2026-10-09
 - [x] Formatted vs Raw Source toggle added to `DocumentPreview` alongside table copying.
 - [x] Token streaming (SSE): Server-Sent Events endpoint `POST /documents/{document_id}/chat/stream` added to FastAPI with Gemini async streaming generator.
 - [x] Frontend real-time streaming: `apiStreamSSE` client and token accumulator in `HomePage` rendering answers dynamically token-by-token.
+- [x] Multi-file batch drag-and-drop ingestion: interactive dropzone with visual drag-over state, client pre-validation (size/extension), individual file progress tracking, and batch queue management.
 
 ## In progress
 

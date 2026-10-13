@@ -42,6 +42,26 @@ button, input, textarea { font: inherit; }
 .document-workspace { margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1.5rem; }
 .upload-form { display: grid; gap: .6rem; }
 .upload-form input[type="file"] { color: var(--text-secondary); font-size: .85rem; }
+.upload-dropzone {
+  border: 2px dashed var(--border-strong);
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 1.75rem 1.25rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.upload-dropzone:hover {
+  border-color: var(--accent);
+  background: rgba(124, 58, 237, 0.04);
+}
+.upload-dropzone.drag-active {
+  border-color: var(--accent);
+  background: rgba(124, 58, 237, 0.12);
+  box-shadow: 0 0 24px rgba(124, 58, 237, 0.25);
+  transform: scale(1.01);
+}
 .document-list { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .5rem; }
 .document-list li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem; background: var(--background); border: 1px solid var(--border); border-radius: .5rem; }
 .document-list span { display: grid; gap: .25rem; min-width: 0; }
