@@ -44,6 +44,8 @@ export type ChatCitation = {
   page: number | null;
 };
 
+export type Citation = ChatCitation;
+
 export type ChatResponse = {
   answer: string;
   citations: ChatCitation[];

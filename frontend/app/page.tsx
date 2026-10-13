@@ -9,7 +9,7 @@ import { DocumentPreview } from "@/components/DocumentPreview";
 import { UploadZone } from "@/components/UploadZone";
 import { apiDownload, apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import type { ChatMessage, ChatResponse, DocumentPreview as DocumentPreviewType, DocumentSummary } from "@/lib/types";
+import type { ChatMessage, ChatResponse, Citation, DocumentPreview as DocumentPreviewType, DocumentSummary } from "@/lib/types";
 
 export default function HomePage() {
   const { accessToken, user, isLoading, signIn, register, signOut } = useAuth();
@@ -111,6 +111,7 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
   const [preview, setPreview] = useState<DocumentPreviewType | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [asking, setAsking] = useState(false);
+  const [highlightSection, setHighlightSection] = useState<string | null>(null);
 
   // Initial fetch on authentication
   useEffect(() => {
@@ -210,6 +211,7 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
       );
       setPreview(previewData);
       setMessages([]);
+      setHighlightSection(null);
       setMessage(null);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Preview is not ready.");
@@ -295,7 +297,11 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
 
       {preview && (
         <>
-          <DocumentPreview preview={preview} onDownload={(format) => void handleDownload(format)} />
+          <DocumentPreview
+            preview={preview}
+            highlightSection={highlightSection}
+            onDownload={(format) => void handleDownload(format)}
+          />
           <ChatPanel
             documentId={preview.id}
             documentName={preview.original_name}
@@ -303,6 +309,9 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
             asking={asking}
             onAsk={handleAsk}
             onClearHistory={() => setMessages([])}
+            onSelectCitation={(citation: Citation) => {
+              if (citation.section) setHighlightSection(citation.section);
+            }}
           />
         </>
       )}

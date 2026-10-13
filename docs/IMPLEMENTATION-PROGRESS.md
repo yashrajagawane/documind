@@ -79,6 +79,9 @@ Last Updated: 2026-10-09
 - [x] Auto-chain vector indexing in processing worker (`runner.py`) so parsed documents become queryable without manual intervention.
 - [x] Vector point cleanup on document deletion (`delete_document_points` in `QdrantIndexer`) to prevent orphaned vectors.
 - [x] Backend multi-turn conversation grounding support (`ChatRequest.history`, `build_grounded_prompt(history=...)`) with frontend integration and unit tests.
+- [x] Markdown formatting, code block syntax styling, and copy buttons implemented in `ChatPanel` and `DocumentPreview`.
+- [x] Interactive citation navigation: clicking citation chips scrolls and highlights the matching document section in `DocumentPreview`.
+- [x] Formatted vs Raw Source toggle added to `DocumentPreview` alongside table copying.
 
 ## In progress
 
