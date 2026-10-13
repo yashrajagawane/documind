@@ -42,6 +42,7 @@
   - [Backend Development](#backend-development)
   - [Frontend Development](#frontend-development)
   - [Automated Smoke Testing](#automated-smoke-testing)
+  - [Automated RAG Evaluation](#automated-rag-evaluation)
 - [API & Operations Reference](#api--operations-reference)
   - [Authentication](#authentication)
   - [User Profile](#user-profile)
@@ -91,10 +92,12 @@ DocuMind treats document intelligence as a resilient, security-critical distribu
 | Capability | Description | Implementation Status |
 |---|---|---|
 | **Private Ingestion** | Upload PDF, DOCX, XLSX, PPTX, TXT, CSV, and MD up to 25MB with magic-byte validation, SHA-256 deduplication, and path safety. | Implemented |
-| **Deep Layout Parsing** | IBM Docling parses layout, section headers, character/word statistics, and tabular structures. | Implemented |
+| **Deep Layout & Table Parsing** | IBM Docling parses layout, section headers, statistics, and tabular structures, stored in `structured_json["tables"]`. | Implemented |
+| **Modular UI & Live Polling** | Component-based interface with automated status polling (`queued` → `extracting` → `ready`) and session chat history. | Implemented |
 | **Section-Aware Chunking** | Deterministic Markdown section chunking with stable point IDs and Sentence Transformers (`all-MiniLM-L6-v2`, 384-d). | Implemented |
 | **Vector Indexing** | Qdrant vector storage with mandatory `user_id`, `document_id`, and `artifact_version` payload filters. | Implemented |
 | **Grounded Conversational RAG** | Context-bounded question answering powered by Google Gemini (`gemini-3.8-flash`) with server-derived citation cards. | Implemented |
+| **Automated RAG Evaluation** | Built-in test harness (`evaluator.py`) verifying prompt-injection defense, no-evidence rejection, and grounding. | Implemented |
 | **Multi-Format Export** | Export parsed documents into Markdown (`.md`), Plain Text (`.txt`), JSON (`.json`), or formatted HTML (`.html`). | Implemented |
 | **Fault-Tolerant Job Queue** | Celery + Redis worker with late acknowledgment, fenced leases, bounded retries (max 3), and Celery Beat lease recovery. | Implemented |
 | **Dual-Token Auth** | In-memory access JWT + HttpOnly rotating refresh session cookie with token family reuse detection. | Implemented |
@@ -323,12 +326,18 @@ documind/
 │   │   ├── schemas/             # Pydantic request and response schemas
 │   │   ├── storage/             # PrivateStorage interface, Local and S3 adapters
 │   │   └── main.py              # Application factory and lifespan configuration
-│   ├── tests/                   # Pytest test suite (health, auth, storage, grounding, etc.)
+│   ├── tests/                   # Pytest test suite (health, auth, storage, export, grounding)
 │   ├── Dockerfile               # Backend and Celery worker multi-stage container
 │   └── pyproject.toml           # Build config, core dependencies, and optional extras
 ├── frontend/
 │   ├── app/                     # Next.js 16 App Router (layout.tsx, page.tsx, globals.css)
-│   ├── components/              # React components and provider wrappers
+│   ├── components/              # Modular UI components:
+│   │   ├── StatusBadge.tsx      # Processing status chips & dynamic progress bar
+│   │   ├── UploadZone.tsx       # File upload zone with 25MB pre-flight check
+│   │   ├── DocumentList.tsx     # Document library with preview, retry, and deletion
+│   │   ├── DocumentPreview.tsx  # Tabbed Markdown & Extracted Tables viewer
+│   │   ├── ChatPanel.tsx        # Multi-turn conversation feed & citation cards
+│   │   └── AppProviders.tsx     # QueryClient & React context provider wrapper
 │   ├── lib/                     # API client (api.ts), AuthContext, TypeScript definitions
 │   ├── tests/                   # Vitest setup and component tests
 │   ├── Dockerfile               # Frontend container specification
@@ -345,6 +354,7 @@ documind/
 │   └── smoke_test.py            # Automated deployment verification script
 ├── storage/                     # Local volume target for uploaded files (gitignored)
 ├── tests/evals/
+│   ├── evaluator.py             # Automated RAG evaluation runner (offline & live)
 │   └── rag_cases.jsonl          # Evaluation dataset for RAG grounding and injection defense
 ├── .env.example                 # Master environment variable template
 ├── docker-compose.yml           # Local multi-service orchestration definition
@@ -551,6 +561,20 @@ python scripts/smoke_test.py --base-url http://localhost:8000 --email smoke@exam
 
 ---
 
+### Automated RAG Evaluation
+
+DocuMind includes an automated evaluation harness ([tests/evals/evaluator.py](tests/evals/evaluator.py)) to verify evidence grounding, prompt-injection defense, and citation correctness against the benchmark dataset in [`tests/evals/rag_cases.jsonl`](tests/evals/rag_cases.jsonl):
+
+```powershell
+# Run offline prompt structure, boundary, and injection defense evaluation (3/3 test cases)
+python tests/evals/evaluator.py
+
+# Run live generative evaluation through Gemini API (requires GEMINI_API_KEY in environment)
+python tests/evals/evaluator.py --live
+```
+
+---
+
 ## API & Operations Reference
 
 All business endpoints are versioned under the `/api/v1` prefix.
@@ -717,13 +741,16 @@ DocuMind's architecture and features are verified against the active codebase an
 - [x] Multipart upload validation (magic bytes, SHA-256 deduplication, size limits, traversal guards).
 - [x] Abstract storage interface with `LocalStorage` and `S3Storage` adapters.
 - [x] Asynchronous job persistence, Celery worker execution, bounded retry schedules, and Celery Beat lease recovery.
-- [x] Docling document parsing into Markdown, document statistics, and table structures.
+- [x] Docling document parsing into Markdown, statistics, and structured tables (`structured_json["tables"]`).
 - [x] Section-aware chunking, stable point ID generation, and Qdrant vector upsert/search.
 - [x] Grounded chat pipeline with prompt-injection defense and server-derived citations.
 - [x] Multi-format document export (Markdown, TXT, JSON, HTML).
 - [x] Sliding-window rate limiting with in-memory and Redis Lua backends.
 - [x] Protected Prometheus operational metrics (`/api/v1/metrics`).
-- [x] Next.js 16 frontend with in-memory authentication, upload queue, preview, and chat.
+- [x] Modular Next.js 16 frontend (`UploadZone`, `DocumentList`, `DocumentPreview`, `ChatPanel`, `StatusBadge`).
+- [x] Real-time frontend status polling for in-progress processing jobs.
+- [x] Multi-turn session conversation history with citation cards.
+- [x] Automated RAG evaluation harness (`tests/evals/evaluator.py`) with 3/3 passing benchmarks.
 - [x] Full Docker Compose configuration and automated release smoke-test script.
 
 ### Operational Caveats & Remaining Qualification
