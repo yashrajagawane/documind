@@ -33,11 +33,14 @@ def create_access_token(user_id: UUID, settings: Settings | None = None) -> str:
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
 
-def decode_access_token(token: str, settings: Settings | None = None) -> UUID:
+def decode_access_token(token: str, settings: Settings | None = None) -> UUID | None:
     settings = settings or get_settings()
-    payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
+    try:
+        payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
+    except jwt.PyJWTError:
+        return None
     if payload.get("type") != "access" or not payload.get("sub"):
-        raise jwt.InvalidTokenError("invalid access token")
+        return None
     return UUID(payload["sub"])
 
 

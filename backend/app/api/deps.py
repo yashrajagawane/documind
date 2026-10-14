@@ -16,9 +16,9 @@ async def get_current_user_id(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required."
         )
-    try:
-        return decode_access_token(credentials.credentials)
-    except (ValueError, jwt.InvalidTokenError):
+    user_id = decode_access_token(credentials.credentials)
+    if user_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required."
-        ) from None
+        )
+    return user_id

@@ -149,6 +149,7 @@ async def logout(
             session.revoked_at = datetime.now(UTC)
             await db.commit()
     clear_refresh_cookie(response)
+    response.status_code = status.HTTP_204_NO_CONTENT
     return response
 
 

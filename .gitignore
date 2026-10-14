@@ -23,6 +23,8 @@ storage/*
 !storage/.gitkeep
 backend/storage/*
 !backend/storage/.gitkeep
+tmp/
+backend/tmp/
 *.log
 
 # OS/editor files

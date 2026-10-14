@@ -23,6 +23,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 class InMemoryRateLimitMiddleware(BaseHTTPMiddleware):
     """Use an atomic Redis window when configured; otherwise limit this process."""
 
+    _instances: list["InMemoryRateLimitMiddleware"] = []
+
     def __init__(
         self,
         app,
@@ -43,6 +45,13 @@ class InMemoryRateLimitMiddleware(BaseHTTPMiddleware):
             self.redis = Redis.from_url(redis_url, decode_responses=False)
         self.key_prefix = key_prefix
         self.trusted_proxy_cidrs = tuple(ip_network(value) for value in trusted_proxy_cidrs or [])
+        InMemoryRateLimitMiddleware._instances.append(self)
+
+    @classmethod
+    def reset_all(cls) -> None:
+        """Clear recorded in-memory rate-limit events across all active middleware instances."""
+        for inst in cls._instances:
+            inst.events.clear()
 
     async def dispatch(self, request: Request, call_next):  # type: ignore[no-untyped-def]
         bucket = self._bucket(request)

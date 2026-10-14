@@ -25,6 +25,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+  "aiosqlite==0.21.0",
   "httpx==0.28.1",
   "pytest==9.0.2",
   "pytest-asyncio==1.3.0",
@@ -44,6 +45,8 @@ rag = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+asyncio_mode = "auto"
+tmp_path_retention_policy = "failed"
 
 [tool.ruff]
 target-version = "py311"
