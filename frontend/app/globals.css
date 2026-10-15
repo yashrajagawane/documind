@@ -302,3 +302,62 @@ button, input, textarea { font: inherit; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
 }
+
+/* ── Deletion Confirmation Dialog ───────────────────────────────────────── */
+.confirm-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(2px);
+  display: grid;
+  place-items: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.confirm-dialog {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 0.875rem;
+  padding: 1.75rem 2rem;
+  width: min(100%, 26rem);
+  box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.6);
+}
+
+.confirm-dialog-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+  color: var(--text-primary);
+}
+
+.confirm-dialog-desc {
+  margin: 0 0 1.5rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-size: 0.9rem;
+}
+
+.confirm-dialog-warning {
+  color: #fca5a5;
+  font-weight: 600;
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.confirm-cancel-button {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+  margin-top: 0;
+}
+.confirm-cancel-button:hover { background: var(--border); color: var(--text-primary); }
+
+.confirm-delete-button {
+  background: #dc2626;
+  margin-top: 0;
+}
+.confirm-delete-button:hover { background: #b91c1c; }

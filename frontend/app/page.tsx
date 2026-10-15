@@ -333,6 +333,7 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
         documents={documents}
         loading={loading}
         selectedDocumentId={preview?.id}
+        deletingId={deletingId}
         onPreview={(id) => void handlePreview(id)}
         onDelete={(id) => void handleRemove(id)}
         onRetry={(id) => void handleRetry(id)}

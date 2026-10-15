@@ -15,13 +15,13 @@ interface DocumentListProps {
 }
 
 interface ConfirmDeleteDialogProps {
-  document: DocumentSummary;
+  targetDoc: DocumentSummary;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
 /** Accessible confirmation dialog — traps focus and closes on Escape. */
-function ConfirmDeleteDialog({ document, onConfirm, onCancel }: Readonly<ConfirmDeleteDialogProps>) {
+function ConfirmDeleteDialog({ targetDoc, onConfirm, onCancel }: Readonly<ConfirmDeleteDialogProps>) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
 
@@ -75,7 +75,7 @@ function ConfirmDeleteDialog({ document, onConfirm, onCancel }: Readonly<Confirm
           Delete document?
         </h2>
         <p id="confirm-dialog-desc" className="confirm-dialog-desc">
-          <strong>&ldquo;{document.original_name}&rdquo;</strong> will be permanently removed along
+          <strong>&ldquo;{targetDoc.original_name}&rdquo;</strong> will be permanently removed along
           with its extracted tables and indexed vectors.{" "}
           <span className="confirm-dialog-warning">This action cannot be undone.</span>
         </p>
@@ -139,7 +139,7 @@ export function DocumentList({
     <>
       {pendingDeleteDoc && (
         <ConfirmDeleteDialog
-          document={pendingDeleteDoc}
+          targetDoc={pendingDeleteDoc}
           onConfirm={confirmDelete}
           onCancel={cancelDelete}
         />
