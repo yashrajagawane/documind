@@ -639,6 +639,64 @@ button, input, textarea, select { font: inherit; }
 
 .chat-form .button { margin-top: 0; }
 
+/* ── Starter Prompt Chips ────────────────────────────────────────── */
+.starter-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+  max-width: 20rem;
+  margin-top: 0.5rem;
+}
+
+.starter-chip {
+  background: var(--surface-3);
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.78rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.1s;
+  line-height: 1.4;
+}
+.starter-chip:hover:not(:disabled) {
+  background: var(--accent-subtle);
+  border-color: var(--border-accent);
+  color: var(--text-primary);
+  transform: translateX(2px);
+}
+.starter-chip:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Chat form action row (Ask + Stop buttons) ───────────────────── */
+.chat-form-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.chat-form-actions .button { flex: 1; margin-top: 0; }
+
+/* ── Stop generation button ──────────────────────────────────────── */
+.stop-button {
+  flex-shrink: 0;
+  background: rgba(220, 38, 38, 0.12);
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  color: #fca5a5;
+  border-radius: 0.625rem;
+  padding: 0.8rem 0.9rem;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.01em;
+  transition: background 0.12s, border-color 0.12s;
+}
+.stop-button:hover {
+  background: rgba(220, 38, 38, 0.22);
+  border-color: rgba(220, 38, 38, 0.6);
+  color: #fecaca;
+}
+
 .citation-list { display: grid; gap: 0.25rem; }
 .citation-chip {
   display: inline-flex;

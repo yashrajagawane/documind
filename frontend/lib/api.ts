@@ -126,6 +126,7 @@ export async function* apiStreamSSE(
   body: unknown,
   accessToken?: string | null,
   retryCount = 0,
+  signal?: AbortSignal,
 ): AsyncGenerator<SSEEvent> {
   const headers = new Headers();
   headers.set("Content-Type", "application/json");
@@ -137,12 +138,13 @@ export async function* apiStreamSSE(
     headers,
     body: JSON.stringify(body),
     credentials: "include",
+    signal,
   });
 
   if (response.status === 401 && retryCount === 0) {
     const newToken = await coordinateTokenRefresh();
     if (newToken) {
-      yield* apiStreamSSE(path, body, newToken, retryCount + 1);
+      yield* apiStreamSSE(path, body, newToken, retryCount + 1, signal);
       return;
     }
   }
@@ -159,7 +161,15 @@ export async function* apiStreamSSE(
   let buffer = "";
 
   while (true) {
-    const { done, value } = await reader.read();
+    let chunk: ReadableStreamReadResult<Uint8Array>;
+    try {
+      chunk = await reader.read();
+    } catch (err) {
+      // AbortError is a clean cancellation — not a failure
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      throw err;
+    }
+    const { done, value } = chunk;
     if (done) break;
 
     buffer += decoder.decode(value, { stream: true });

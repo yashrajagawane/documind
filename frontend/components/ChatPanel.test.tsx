@@ -199,3 +199,91 @@ test("calls onSelectCitation when a citation chip is clicked", () => {
   fireEvent.click(chip);
   expect(onSelectCitation).toHaveBeenCalledWith(citation);
 });
+
+// ---------------------------------------------------------------------------
+// Phase 4: Starter prompt chips
+// ---------------------------------------------------------------------------
+
+test("renders starter prompt chips when messages array is empty", () => {
+  render(
+    <ChatPanel
+      documentId="doc-1"
+      documentName="Report"
+      messages={[]}
+      asking={false}
+      onAsk={noop}
+    />
+  );
+  const chips = screen.getAllByRole("button", { name: /summarise|main topic|numbers/i });
+  expect(chips.length).toBeGreaterThanOrEqual(1);
+});
+
+test("clicking a starter chip calls onAsk with that prompt", async () => {
+  const onAsk = vi.fn().mockResolvedValue(undefined);
+  render(
+    <ChatPanel
+      documentId="doc-1"
+      documentName="Report"
+      messages={[]}
+      asking={false}
+      onAsk={onAsk}
+    />
+  );
+  const chip = screen.getByRole("button", { name: /summarise the key findings/i });
+  fireEvent.click(chip);
+  await waitFor(() => {
+    expect(onAsk).toHaveBeenCalledWith("Summarise the key findings.");
+  });
+});
+
+test("starter chips are NOT shown when messages exist", () => {
+  const messages: ChatMessage[] = [
+    makeMsg({ id: "1", role: "user", content: "Hello" }),
+  ];
+  render(
+    <ChatPanel
+      documentId="doc-1"
+      documentName="Report"
+      messages={messages}
+      asking={false}
+      onAsk={noop}
+    />
+  );
+  expect(screen.queryByText(/summarise the key findings/i)).not.toBeInTheDocument();
+});
+
+// ---------------------------------------------------------------------------
+// Phase 4: Stop / Abort button
+// ---------------------------------------------------------------------------
+
+test("Stop button is visible while asking=true and calls onAbort", () => {
+  const onAbort = vi.fn();
+  render(
+    <ChatPanel
+      documentId="doc-1"
+      documentName="Report"
+      messages={[]}
+      asking={true}
+      onAsk={noop}
+      onAbort={onAbort}
+    />
+  );
+  const stopBtn = screen.getByRole("button", { name: /stop generation/i });
+  expect(stopBtn).toBeInTheDocument();
+  fireEvent.click(stopBtn);
+  expect(onAbort).toHaveBeenCalledOnce();
+});
+
+test("Stop button is NOT visible when asking=false", () => {
+  render(
+    <ChatPanel
+      documentId="doc-1"
+      documentName="Report"
+      messages={[]}
+      asking={false}
+      onAsk={noop}
+      onAbort={vi.fn()}
+    />
+  );
+  expect(screen.queryByRole("button", { name: /stop generation/i })).not.toBeInTheDocument();
+});

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 
 import { ChatPanel } from "@/components/ChatPanel";
@@ -123,11 +123,24 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
   const [globalMessage, setGlobalMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState<DocumentPreviewType | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  /** Per-document conversation histories, keyed by document ID. */
+  const [chatHistories, setChatHistories] = useState<Record<string, ChatMessage[]>>({});
   const [asking, setAsking] = useState(false);
   const [highlightSection, setHighlightSection] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [exportingFormat, setExportingFormat] = useState<string | null>(null);
+  /** Holds the active AbortController so generation can be cancelled. */
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  /** Messages for the currently previewed document. */
+  const messages = preview ? (chatHistories[preview.id] ?? []) : [];
+
+  const setMessages = (id: string, updater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => {
+    setChatHistories((prev) => ({
+      ...prev,
+      [id]: typeof updater === "function" ? updater(prev[id] ?? []) : updater,
+    }));
+  };
 
   /* ── Initial document fetch ─────────────────────────────────── */
   useEffect(() => {
@@ -185,9 +198,14 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
       setDocuments((current) => current.filter((doc) => doc.id !== id));
       if (preview?.id === id) {
         setPreview(null);
-        setMessages([]);
         setHighlightSection(null);
       }
+      // Clean up the stored chat history for the deleted document
+      setChatHistories((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
     } catch (err) {
       setGlobalMessage(
         err instanceof Error ? err.message : "Failed to delete the document. Please try again."
@@ -213,6 +231,8 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
 
   const handlePreview = async (id: string) => {
     if (!accessToken) return;
+    // Abort any in-progress generation before switching documents
+    abortControllerRef.current?.abort();
     try {
       const previewData = await apiFetch<DocumentPreviewType>(
         `/documents/${id}/preview`,
@@ -220,7 +240,7 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
         accessToken
       );
       setPreview(previewData);
-      setMessages([]);
+      // Load existing chat history for this doc (or start fresh)
       setHighlightSection(null);
       setGlobalMessage(null);
     } catch (err) {
@@ -228,8 +248,18 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
     }
   };
 
+  const handleAbort = () => {
+    abortControllerRef.current?.abort();
+  };
+
   const handleAsk = async (questionText: string) => {
     if (!accessToken || !preview) return;
+    const docId = preview.id;
+
+    // Create a new AbortController for this generation
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setAsking(true);
     setGlobalMessage(null);
 
@@ -239,7 +269,7 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
       content: questionText,
       createdAt: new Date().toISOString(),
     };
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages(docId, (prev) => [...prev, userMessage]);
 
     const assistantId = crypto.randomUUID();
     const assistantMessage: ChatMessage = {
@@ -249,24 +279,26 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
       citations: [],
       createdAt: new Date().toISOString(),
     };
-    setMessages((prev) => [...prev, assistantMessage]);
+    setMessages(docId, (prev) => [...prev, assistantMessage]);
 
     try {
       const history = messages.map((m) => ({ role: m.role, content: m.content }));
 
       for await (const { event, data } of apiStreamSSE(
-        `/documents/${preview.id}/chat/stream`,
+        `/documents/${docId}/chat/stream`,
         { question: questionText, history },
-        accessToken
+        accessToken,
+        0,
+        controller.signal,
       )) {
         if (event === "citations") {
           const parsed = JSON.parse(data) as { citations: Citation[] };
-          setMessages((prev) =>
+          setMessages(docId, (prev) =>
             prev.map((m) => (m.id === assistantId ? { ...m, citations: parsed.citations } : m))
           );
         } else if (event === "token") {
           const parsed = JSON.parse(data) as { token: string };
-          setMessages((prev) =>
+          setMessages(docId, (prev) =>
             prev.map((m) =>
               m.id === assistantId ? { ...m, content: m.content + parsed.token } : m
             )
@@ -277,10 +309,22 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
         }
       }
     } catch (err) {
-      setGlobalMessage(
-        err instanceof Error ? err.message : "The question could not be answered."
-      );
+      // Ignore AbortError — that is a user-initiated stop, not an error
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setMessages(docId, (prev) =>
+          prev.map((m) =>
+            m.id === assistantId && m.content === ""
+              ? { ...m, content: "(generation stopped)" }
+              : m
+          )
+        );
+      } else {
+        setGlobalMessage(
+          err instanceof Error ? err.message : "The question could not be answered."
+        );
+      }
     } finally {
+      abortControllerRef.current = null;
       setAsking(false);
     }
   };
@@ -437,7 +481,7 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
               type="button"
               className="link-button"
               style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
-              onClick={() => setMessages([])}
+              onClick={() => preview && setMessages(preview.id, [])}
             >
               Clear
             </button>
@@ -451,7 +495,8 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
             messages={messages}
             asking={asking}
             onAsk={handleAsk}
-            onClearHistory={() => setMessages([])}
+            onAbort={handleAbort}
+            onClearHistory={() => preview && setMessages(preview.id, [])}
             onSelectCitation={(citation: Citation) => {
               if (citation.section) setHighlightSection(citation.section);
             }}

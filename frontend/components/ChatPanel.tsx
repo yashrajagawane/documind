@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 import type { ChatMessage, Citation } from "@/lib/types";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
@@ -11,24 +11,55 @@ interface ChatPanelProps {
   messages: ChatMessage[];
   asking: boolean;
   onAsk: (question: string) => Promise<void>;
+  onAbort?: () => void;
   onClearHistory?: () => void;
   onSelectCitation?: (citation: Citation) => void;
 }
+
+/** Suggested starter prompts shown when history is empty. */
+const STARTER_PROMPTS = [
+  "What is the main topic of this document?",
+  "Summarise the key findings.",
+  "What are the most important numbers or dates mentioned?",
+];
 
 export function ChatPanel({
   messages,
   asking,
   onAsk,
+  onAbort,
   onSelectCitation,
 }: Readonly<ChatPanelProps>) {
   const [question, setQuestion] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // ── Auto-scroll with user-scroll awareness ────────────────────
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const userScrolledUpRef = useRef(false);
+
+  /** If the user scrolls up, stop auto-scrolling until they reach the bottom. */
+  const handleScroll = useCallback(() => {
+    const el = scrollAreaRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    userScrolledUpRef.current = !atBottom;
+  }, []);
+
+  /** Scroll sentinel into view only when the user hasn't manually scrolled up. */
+  useEffect(() => {
+    if (!userScrolledUpRef.current) {
+      sentinelRef.current?.scrollIntoView({ block: "end" });
+    }
+  }, [messages, asking]);
+
+  // ── Input handlers ────────────────────────────────────────────
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = question.trim();
     if (!trimmed || asking) return;
     setQuestion("");
+    userScrolledUpRef.current = false; // reset so new answer auto-scrolls
     await onAsk(trimmed);
   };
 
@@ -38,6 +69,7 @@ export function ChatPanel({
       const trimmed = question.trim();
       if (trimmed && !asking) {
         setQuestion("");
+        userScrolledUpRef.current = false;
         void onAsk(trimmed);
       }
     }
@@ -49,16 +81,42 @@ export function ChatPanel({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const handleStarterPrompt = (prompt: string) => {
+    if (asking) return;
+    userScrolledUpRef.current = false;
+    void onAsk(prompt);
+  };
+
   return (
     <>
-      {/* Scrollable message history */}
-      <div className="chat-messages-area" aria-live="polite" aria-label="Chat history">
+      {/* ── Scrollable message history ────────────────────────── */}
+      <div
+        ref={scrollAreaRef}
+        className="chat-messages-area"
+        aria-live="polite"
+        aria-label="Chat history"
+        onScroll={handleScroll}
+      >
         {messages.length === 0 ? (
           <div className="chat-empty-state">
             <div className="chat-empty-icon">💬</div>
             <p className="chat-empty-text">
               Ask anything about this document. Answers are grounded in the extracted content.
             </p>
+            {/* Starter prompt chips */}
+            <div className="starter-chips" role="group" aria-label="Suggested questions">
+              {STARTER_PROMPTS.map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  className="starter-chip"
+                  disabled={asking}
+                  onClick={() => handleStarterPrompt(prompt)}
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="chat-history">
@@ -151,16 +209,21 @@ export function ChatPanel({
             {asking && (
               <div className="chat-message assistant" style={{ opacity: 0.65 }}>
                 <strong style={{ fontSize: "0.75rem", color: "var(--accent)" }}>DocuMind</strong>
-                <p style={{ margin: "0.3rem 0 0", fontSize: "0.87rem", color: "var(--text-muted)" }}>
+                <p
+                  style={{ margin: "0.3rem 0 0", fontSize: "0.87rem", color: "var(--text-muted)" }}
+                >
                   Searching &amp; generating…
                 </p>
               </div>
             )}
           </div>
         )}
+
+        {/* Auto-scroll anchor */}
+        <div ref={sentinelRef} style={{ height: 1 }} aria-hidden="true" />
       </div>
 
-      {/* Sticky input form at bottom of pane */}
+      {/* ── Sticky input area ─────────────────────────────────── */}
       <div className="chat-input-area">
         <form className="chat-form" onSubmit={handleSubmit}>
           <label htmlFor="document-question">
@@ -178,13 +241,25 @@ export function ChatPanel({
             onKeyDown={handleKeyDown}
             placeholder="What does the document state regarding…?"
           />
-          <button
-            className="button"
-            type="submit"
-            disabled={asking || !question.trim()}
-          >
-            {asking ? "Generating…" : "Ask question"}
-          </button>
+          <div className="chat-form-actions">
+            <button
+              className="button"
+              type="submit"
+              disabled={asking || !question.trim()}
+            >
+              {asking ? "Generating…" : "Ask question"}
+            </button>
+            {asking && onAbort && (
+              <button
+                type="button"
+                className="stop-button"
+                onClick={onAbort}
+                aria-label="Stop generation"
+              >
+                ■ Stop
+              </button>
+            )}
+          </div>
         </form>
       </div>
     </>
