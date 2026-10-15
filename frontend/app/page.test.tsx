@@ -1,13 +1,39 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import HomePage from "./page";
 import * as authContext from "@/lib/auth-context";
+import * as api from "@/lib/api";
 
 // Mock useAuth hook
 vi.mock("@/lib/auth-context", () => ({
   useAuth: vi.fn(),
 }));
+
+// Mock apiFetch
+vi.mock("@/lib/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api")>();
+  return {
+    ...actual,
+    apiFetch: vi.fn(),
+  };
+});
+
+function renderWithClient(ui: React.ReactElement, client?: QueryClient) {
+  const testClient =
+    client ??
+    new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+  return {
+    ...render(<QueryClientProvider client={testClient}>{ui}</QueryClientProvider>),
+    queryClient: testClient,
+  };
+}
 
 describe("HomePage Authentication Form & Onboarding", () => {
   const mockSignIn = vi.fn();
@@ -27,7 +53,7 @@ describe("HomePage Authentication Form & Onboarding", () => {
   });
 
   it("renders login form by default with password length requirement hint", () => {
-    render(<HomePage />);
+    renderWithClient(<HomePage />);
 
     expect(screen.getByRole("heading", { name: /Welcome back/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/^email/i)).toBeInTheDocument();
@@ -36,7 +62,7 @@ describe("HomePage Authentication Form & Onboarding", () => {
   });
 
   it("toggles password visibility between password and text type", () => {
-    render(<HomePage />);
+    renderWithClient(<HomePage />);
 
     const passwordInput = screen.getByLabelText(/^password/i) as HTMLInputElement;
     expect(passwordInput.type).toBe("password");
@@ -52,7 +78,7 @@ describe("HomePage Authentication Form & Onboarding", () => {
   });
 
   it("updates password length requirement dynamically as user types", () => {
-    render(<HomePage />);
+    renderWithClient(<HomePage />);
 
     const passwordInput = screen.getByLabelText(/^password/i);
 
@@ -72,7 +98,7 @@ describe("HomePage Authentication Form & Onboarding", () => {
   it("maps 409 conflict error to user-friendly message with switch-to-login option", async () => {
     mockRegister.mockRejectedValue(new Error("Email is already registered. [409]"));
 
-    render(<HomePage />);
+    renderWithClient(<HomePage />);
 
     // Switch to register mode
     fireEvent.click(screen.getByRole("button", { name: /Need an account\? Register/i }));
@@ -99,7 +125,7 @@ describe("HomePage Authentication Form & Onboarding", () => {
   it("maps 422 validation error to friendly guidance message", async () => {
     mockSignIn.mockRejectedValue(new Error("VALIDATION_ERROR: The request could not be validated. [422]"));
 
-    render(<HomePage />);
+    renderWithClient(<HomePage />);
 
     fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: "bad@format" } });
     fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: "short" } });
@@ -112,4 +138,59 @@ describe("HomePage Authentication Form & Onboarding", () => {
       ).toBeInTheDocument();
     });
   });
+
+  it("renders workspace and fetches documents using React Query when user is authenticated", async () => {
+    vi.mocked(authContext.useAuth).mockReturnValue({
+      accessToken: "mock-token-xyz",
+      user: { id: "u-1", email: "user@example.com" },
+      isLoading: false,
+      signIn: mockSignIn,
+      register: mockRegister,
+      signOut: mockSignOut,
+    });
+
+    vi.mocked(api.apiFetch).mockResolvedValue([
+      {
+        id: "doc-1",
+        original_name: "test-doc.pdf",
+        checksum_sha256: "hash123",
+        status: "ready",
+        processing_stage: null,
+        processing_progress: 100,
+        created_at: new Date().toISOString(),
+      },
+    ]);
+
+    renderWithClient(<HomePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("test-doc.pdf")).toBeInTheDocument();
+    });
+    expect(screen.getByText("user@example.com")).toBeInTheDocument();
+  });
+
+  it("purges query cache and invokes signOut when Sign out is clicked", async () => {
+    vi.mocked(authContext.useAuth).mockReturnValue({
+      accessToken: "mock-token-xyz",
+      user: { id: "u-1", email: "user@example.com" },
+      isLoading: false,
+      signIn: mockSignIn,
+      register: mockRegister,
+      signOut: mockSignOut,
+    });
+
+    vi.mocked(api.apiFetch).mockResolvedValue([]);
+
+    const { queryClient } = renderWithClient(<HomePage />);
+    const clearSpy = vi.spyOn(queryClient, "clear");
+
+    const signOutBtn = screen.getByRole("button", { name: /Sign out/i });
+    fireEvent.click(signOutBtn);
+
+    await waitFor(() => {
+      expect(clearSpy).toHaveBeenCalled();
+      expect(mockSignOut).toHaveBeenCalled();
+    });
+  });
 });
+

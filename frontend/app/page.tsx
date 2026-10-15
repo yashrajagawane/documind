@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { ChatPanel } from "@/components/ChatPanel";
 import { DocumentList } from "@/components/DocumentList";
@@ -21,12 +22,18 @@ import type {
 ────────────────────────────────────────────────────────────────── */
 export default function HomePage() {
   const { accessToken, user, isLoading, signIn, register, signOut } = useAuth();
+  const queryClient = useQueryClient();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const handleSignOut = async () => {
+    queryClient.clear();
+    await signOut();
+  };
 
   const getFriendlyAuthError = (rawMessage: string): string => {
     const lower = rawMessage.toLowerCase();
@@ -76,7 +83,7 @@ export default function HomePage() {
       <DocumentWorkspace
         accessToken={accessToken}
         userEmail={user.email}
-        onSignOut={() => void signOut()}
+        onSignOut={() => void handleSignOut()}
       />
     );
   }
@@ -194,10 +201,9 @@ interface WorkspaceProps {
 }
 
 function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<WorkspaceProps>) {
-  const [documents, setDocuments] = useState<DocumentSummary[]>([]);
+  const queryClient = useQueryClient();
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [globalMessage, setGlobalMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [preview, setPreview] = useState<DocumentPreviewType | null>(null);
   /** Per-document conversation histories, keyed by document ID. */
   const [chatHistories, setChatHistories] = useState<Record<string, ChatMessage[]>>({});
   const [asking, setAsking] = useState(false);
@@ -206,6 +212,66 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
   const [exportingFormat, setExportingFormat] = useState<string | null>(null);
   /** Holds the active AbortController so generation can be cancelled. */
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  /* ── 1. Document List Query with visibility-aware smart polling ── */
+  const {
+    data: documents = [],
+    isLoading: loading,
+    error: docsError,
+  } = useQuery({
+    queryKey: ["documents", accessToken],
+    queryFn: () => apiFetch<DocumentSummary[]>("/documents", {}, accessToken ?? undefined),
+    enabled: !!accessToken,
+    refetchInterval: (query) => {
+      const data = query.state.data ?? [];
+      const hasPending = data.some(
+        (doc) => doc.status !== "ready" && doc.status !== "failed"
+      );
+      return hasPending ? 3000 : false;
+    },
+  });
+
+  /* ── 2. Active Document Preview Query with automatic caching ──── */
+  const {
+    data: preview = null,
+    error: previewError,
+  } = useQuery<DocumentPreviewType | null>({
+    queryKey: ["document-preview", selectedDocumentId, accessToken],
+    queryFn: () =>
+      selectedDocumentId
+        ? apiFetch<DocumentPreviewType>(
+            `/documents/${selectedDocumentId}/preview`,
+            {},
+            accessToken ?? undefined
+          )
+        : null,
+    enabled: !!selectedDocumentId && !!accessToken,
+  });
+
+  const activeAlert =
+    globalMessage ??
+    (docsError instanceof Error
+      ? docsError.message
+      : docsError
+      ? "Could not load documents."
+      : null) ??
+    (previewError instanceof Error
+      ? previewError.message
+      : previewError
+      ? "Preview is not ready."
+      : null);
+
+  /* ── 3. Invalidate preview when processing doc reaches ready ──── */
+  const selectedDocSummary = documents.find((doc) => doc.id === selectedDocumentId);
+  const selectedDocStatus = selectedDocSummary?.status;
+
+  useEffect(() => {
+    if (selectedDocumentId && selectedDocStatus === "ready") {
+      void queryClient.invalidateQueries({
+        queryKey: ["document-preview", selectedDocumentId, accessToken],
+      });
+    }
+  }, [selectedDocStatus, selectedDocumentId, accessToken, queryClient]);
 
   /** Messages for the currently previewed document. */
   const messages = preview ? (chatHistories[preview.id] ?? []) : [];
@@ -217,110 +283,113 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
     }));
   };
 
-  /* ── Initial document fetch ─────────────────────────────────── */
-  useEffect(() => {
-    if (!accessToken) return;
-    let isCancelled = false;
+  /* ── 4. Mutations for Upload, Delete, and Retry ────────────────── */
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      if (!accessToken) {
+        throw new Error("Authentication required. Please sign in to upload documents.");
+      }
+      const formData = new FormData();
+      formData.append("file", file);
+      return apiFetch<DocumentSummary>(
+        "/documents",
+        {
+          method: "POST",
+          body: formData,
+          headers: { "Idempotency-Key": crypto.randomUUID() },
+        },
+        accessToken
+      );
+    },
+    onSuccess: (uploadedDoc) => {
+      queryClient.setQueryData<DocumentSummary[]>(
+        ["documents", accessToken],
+        (prev = []) => [uploadedDoc, ...prev.filter((item) => item.id !== uploadedDoc.id)]
+      );
+      void queryClient.invalidateQueries({ queryKey: ["documents", accessToken] });
+    },
+  });
 
-    apiFetch<DocumentSummary[]>("/documents", {}, accessToken)
-      .then((data) => { if (!isCancelled) setDocuments(data); })
-      .catch((err: unknown) => {
-        if (!isCancelled)
-          setGlobalMessage(err instanceof Error ? err.message : "Could not load documents.");
-      })
-      .finally(() => { if (!isCancelled) setLoading(false); });
-
-    return () => { isCancelled = true; };
-  }, [accessToken]);
-
-  /* ── Background polling for in-progress documents ───────────── */
-  const hasPending = documents.some(
-    (doc) => doc.status !== "ready" && doc.status !== "failed"
-  );
-
-  useEffect(() => {
-    if (!hasPending || !accessToken) return;
-    const timer = setInterval(() => {
-      apiFetch<DocumentSummary[]>("/documents", {}, accessToken)
-        .then(setDocuments)
-        .catch(() => undefined);
-    }, 2500);
-    return () => clearInterval(timer);
-  }, [hasPending, accessToken]);
-
-  /* ── Handlers ───────────────────────────────────────────────── */
   const handleUpload = async (file: File) => {
-    if (!accessToken) {
-      throw new Error("Authentication required. Please sign in to upload documents.");
-    }
     setGlobalMessage(null);
-    const formData = new FormData();
-    formData.append("file", file);
-    const uploaded = await apiFetch<DocumentSummary>(
-      "/documents",
-      { method: "POST", body: formData, headers: { "Idempotency-Key": crypto.randomUUID() } },
-      accessToken
-    );
-    setDocuments((current) => [uploaded, ...current.filter((item) => item.id !== uploaded.id)]);
+    await uploadMutation.mutateAsync(file);
   };
 
-  const handleRemove = async (id: string) => {
-    if (!accessToken) return;
-    setDeletingId(id);
-    setGlobalMessage(null);
-    try {
-      await apiFetch<void>(`/documents/${id}`, { method: "DELETE" }, accessToken);
-      setDocuments((current) => current.filter((doc) => doc.id !== id));
-      if (preview?.id === id) {
-        setPreview(null);
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (!accessToken) return;
+      return apiFetch<void>(`/documents/${id}`, { method: "DELETE" }, accessToken);
+    },
+    onMutate: (id) => {
+      setDeletingId(id);
+      setGlobalMessage(null);
+    },
+    onSuccess: (_, id) => {
+      queryClient.setQueryData<DocumentSummary[]>(
+        ["documents", accessToken],
+        (prev = []) => prev.filter((doc) => doc.id !== id)
+      );
+      void queryClient.invalidateQueries({ queryKey: ["documents", accessToken] });
+      if (selectedDocumentId === id) {
+        setSelectedDocumentId(null);
         setHighlightSection(null);
       }
-      // Clean up the stored chat history for the deleted document
+      queryClient.removeQueries({ queryKey: ["document-preview", id, accessToken] });
       setChatHistories((prev) => {
         const next = { ...prev };
         delete next[id];
         return next;
       });
-    } catch (err) {
+    },
+    onError: (err) => {
       setGlobalMessage(
         err instanceof Error ? err.message : "Failed to delete the document. Please try again."
       );
-    } finally {
+    },
+    onSettled: () => {
       setDeletingId(null);
-    }
+    },
+  });
+
+  const handleRemove = async (id: string) => {
+    await deleteMutation.mutateAsync(id);
   };
 
-  const handleRetry = async (id: string) => {
-    if (!accessToken) return;
-    try {
-      const retried = await apiFetch<DocumentSummary>(
+  const retryMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (!accessToken) return;
+      return apiFetch<DocumentSummary>(
         `/documents/${id}/retry`,
         { method: "POST" },
         accessToken
       );
-      setDocuments((current) => current.map((doc) => (doc.id === id ? retried : doc)));
-    } catch (err) {
-      setGlobalMessage(err instanceof Error ? err.message : "Could not retry document processing.");
-    }
+    },
+    onSuccess: (retriedDoc, id) => {
+      if (retriedDoc) {
+        queryClient.setQueryData<DocumentSummary[]>(
+          ["documents", accessToken],
+          (prev = []) => prev.map((doc) => (doc.id === id ? retriedDoc : doc))
+        );
+      }
+      void queryClient.invalidateQueries({ queryKey: ["documents", accessToken] });
+    },
+    onError: (err) => {
+      setGlobalMessage(
+        err instanceof Error ? err.message : "Could not retry document processing."
+      );
+    },
+  });
+
+  const handleRetry = async (id: string) => {
+    await retryMutation.mutateAsync(id);
   };
 
-  const handlePreview = async (id: string) => {
+  const handlePreview = (id: string) => {
     if (!accessToken) return;
-    // Abort any in-progress generation before switching documents
     abortControllerRef.current?.abort();
-    try {
-      const previewData = await apiFetch<DocumentPreviewType>(
-        `/documents/${id}/preview`,
-        {},
-        accessToken
-      );
-      setPreview(previewData);
-      // Load existing chat history for this doc (or start fresh)
-      setHighlightSection(null);
-      setGlobalMessage(null);
-    } catch (err) {
-      setGlobalMessage(err instanceof Error ? err.message : "Preview is not ready.");
-    }
+    setSelectedDocumentId(id);
+    setHighlightSection(null);
+    setGlobalMessage(null);
   };
 
   const handleAbort = () => {
@@ -452,10 +521,10 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
           </div>
 
           {/* Error alert */}
-          {globalMessage && (
+          {activeAlert && (
             <div className="workspace-alert" role="alert">
               <span>⚠</span>
-              <span>{globalMessage}</span>
+              <span>{activeAlert}</span>
             </div>
           )}
 
@@ -472,9 +541,9 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
             <DocumentList
               documents={documents}
               loading={loading}
-              selectedDocumentId={preview?.id}
+              selectedDocumentId={selectedDocumentId ?? preview?.id}
               deletingId={deletingId}
-              onPreview={(id) => void handlePreview(id)}
+              onPreview={(id) => handlePreview(id)}
               onDelete={(id) => void handleRemove(id)}
               onRetry={(id) => void handleRetry(id)}
             />
