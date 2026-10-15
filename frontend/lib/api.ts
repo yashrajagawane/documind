@@ -1,3 +1,5 @@
+import type { AuthResponse } from "@/lib/types";
+
 export type ApiError = {
   success: false;
   error: { code: string; message: string; request_id?: string };
@@ -5,16 +7,83 @@ export type ApiError = {
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
 
+// Coordinated single-flight refresh lock
+let refreshPromise: Promise<string | null> | null = null;
+let onTokenRefreshedCallback: ((auth: AuthResponse) => void) | null = null;
+let onSessionExpiredCallback: (() => void) | null = null;
+
+export function registerAuthCallbacks(callbacks: {
+  onTokenRefreshed: (auth: AuthResponse) => void;
+  onSessionExpired: () => void;
+}) {
+  onTokenRefreshedCallback = callbacks.onTokenRefreshed;
+  onSessionExpiredCallback = callbacks.onSessionExpired;
+}
+
+export function unregisterAuthCallbacks() {
+  onTokenRefreshedCallback = null;
+  onSessionExpiredCallback = null;
+}
+
+async function coordinateTokenRefresh(): Promise<string | null> {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  refreshPromise = (async () => {
+    try {
+      const response = await fetch(`${apiBaseUrl}/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+
+      if (!response.ok) {
+        onSessionExpiredCallback?.();
+        return null;
+      }
+
+      const data = (await response.json()) as AuthResponse;
+      onTokenRefreshedCallback?.(data);
+      return data.access_token;
+    } catch {
+      onSessionExpiredCallback?.();
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
+function isAuthRoute(path: string): boolean {
+  return (
+    path.startsWith("/auth/login") ||
+    path.startsWith("/auth/register") ||
+    path.startsWith("/auth/refresh")
+  );
+}
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
   accessToken?: string | null,
+  retryCount = 0,
 ): Promise<T> {
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
   if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
 
   const response = await fetch(`${apiBaseUrl}${path}`, { ...options, headers, credentials: "include" });
+
+  if (response.status === 401 && !isAuthRoute(path) && retryCount === 0) {
+    const newToken = await coordinateTokenRefresh();
+    if (newToken) {
+      return apiFetch<T>(path, options, newToken, retryCount + 1);
+    }
+  }
+
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as ApiError | null;
     throw new Error(body?.error.message ?? "The request could not be completed.");
@@ -26,11 +95,20 @@ export async function apiFetch<T>(
 export async function apiDownload(
   path: string,
   accessToken: string,
+  retryCount = 0,
 ): Promise<Blob> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
     headers: { Accept: "application/octet-stream", Authorization: `Bearer ${accessToken}` },
     credentials: "include",
   });
+
+  if (response.status === 401 && retryCount === 0) {
+    const newToken = await coordinateTokenRefresh();
+    if (newToken) {
+      return apiDownload(path, newToken, retryCount + 1);
+    }
+  }
+
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as ApiError | null;
     throw new Error(body?.error.message ?? "The download could not be completed.");
@@ -46,7 +124,8 @@ export interface SSEEvent {
 export async function* apiStreamSSE(
   path: string,
   body: unknown,
-  accessToken?: string | null
+  accessToken?: string | null,
+  retryCount = 0,
 ): AsyncGenerator<SSEEvent> {
   const headers = new Headers();
   headers.set("Content-Type", "application/json");
@@ -59,6 +138,14 @@ export async function* apiStreamSSE(
     body: JSON.stringify(body),
     credentials: "include",
   });
+
+  if (response.status === 401 && retryCount === 0) {
+    const newToken = await coordinateTokenRefresh();
+    if (newToken) {
+      yield* apiStreamSSE(path, body, newToken, retryCount + 1);
+      return;
+    }
+  }
 
   if (!response.ok) {
     const errorBody = (await response.json().catch(() => null)) as ApiError | null;
@@ -110,4 +197,3 @@ export async function* apiStreamSSE(
     if (dataText) yield { event: eventType, data: dataText };
   }
 }
-

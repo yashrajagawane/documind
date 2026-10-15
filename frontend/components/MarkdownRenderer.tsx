@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useEffect, useRef } from "react";
+import DOMPurify from "isomorphic-dompurify";
 import { marked } from "marked";
 
 interface MarkdownRendererProps {
@@ -16,6 +17,15 @@ function slugify(text: string): string {
     .replace(/[^\w\s-]/g, "")
     .trim()
     .replace(/\s+/g, "-");
+}
+
+function escapeAttribute(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 export function MarkdownRenderer({
@@ -34,7 +44,8 @@ export function MarkdownRenderer({
     // Enhance headings with predictable IDs and classes for citation anchoring
     renderer.heading = ({ text, depth }) => {
       const slug = slugify(text);
-      return `<h${depth} id="sec-${slug}" class="markdown-heading" data-section="${text}">${text}</h${depth}>`;
+      const safeSection = escapeAttribute(text);
+      return `<h${depth} id="sec-${slug}" class="markdown-heading" data-section="${safeSection}">${text}</h${depth}>`;
     };
 
     // Enhance code blocks with copy-friendly markup
@@ -47,16 +58,22 @@ export function MarkdownRenderer({
     const defaultTable = renderer.table.bind(renderer);
     renderer.table = (token) => {
       const tableHtml = defaultTable(token);
-      return `<div class="table-wrapper">${tableHtml.replace("<table>", '<table class="table-viewer">')}</div>`;
+      return `<div class="table-wrapper">${tableHtml.replaceAll("<table>", '<table class="table-viewer">')}</div>`;
     };
 
     // Parse synchronously with GitHub Flavored Markdown
-    return marked.parse(content, {
+    const rawHtml = marked.parse(content, {
       renderer,
       gfm: true,
       breaks: true,
       async: false,
     }) as string;
+
+    // Sanitize untrusted HTML to neutralize XSS attacks while preserving safe markup
+    return DOMPurify.sanitize(rawHtml, {
+      USE_PROFILES: { html: true },
+      ADD_ATTR: ["data-section", "target"],
+    });
   }, [content]);
 
   // When highlightSection changes, scroll into view and highlight the matching heading

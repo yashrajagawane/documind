@@ -40,3 +40,28 @@ test("rejects unsupported file formats with error", async () => {
     expect(screen.getByText(/unsupported format/i)).toBeInTheDocument();
   });
 });
+
+test("displays error status when onUpload rejects with an authentication or network error", async () => {
+  const onUpload = vi.fn().mockRejectedValue(new Error("Authentication required. Please sign in to upload documents."));
+  const { container } = render(<UploadZone onUpload={onUpload} />);
+
+  const file = new File(["sample content"], "secure-doc.pdf", { type: "application/pdf" });
+  const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+
+  fireEvent.change(input, { target: { files: [file] } });
+
+  await waitFor(() => {
+    expect(onUpload).toHaveBeenCalledWith(file);
+    expect(screen.getByText("secure-doc.pdf")).toBeInTheDocument();
+    expect(screen.getByText("Failed")).toBeInTheDocument();
+    expect(screen.getByText("Authentication required. Please sign in to upload documents.")).toBeInTheDocument();
+  });
+});
+
+test("disables file selection when disabled prop is true", () => {
+  const onUpload = vi.fn();
+  const { container } = render(<UploadZone onUpload={onUpload} disabled />);
+
+  const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+  expect(input).toBeDisabled();
+});

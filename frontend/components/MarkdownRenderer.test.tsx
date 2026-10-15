@@ -45,3 +45,44 @@ test("renders tables with application table styling", () => {
   expect(screen.getByText("Column A")).toBeInTheDocument();
   expect(screen.getByText("Val 1")).toBeInTheDocument();
 });
+
+test("sanitizes malicious script tags and inline event handlers to prevent XSS", () => {
+  const maliciousMarkdown = [
+    "# Safe Title",
+    "<" + "script>window.__xss_executed = true;</" + "script>",
+    '<img src="invalid-image.png" onerror="window.__xss_onerror = true;" />',
+    "<" + 'iframe src="https://evil.com"></' + "iframe>",
+    "Safe paragraph content.",
+  ].join("\n");
+
+  const { container } = render(<MarkdownRenderer content={maliciousMarkdown} />);
+
+  expect(container.querySelector("script")).toBeNull();
+  expect(container.querySelector("iframe")).toBeNull();
+  const img = container.querySelector("img");
+  if (img) {
+    expect(img.hasAttribute("onerror")).toBe(false);
+  }
+  expect(screen.getByText("Safe paragraph content.")).toBeInTheDocument();
+});
+
+test("sanitizes dangerous javascript: URI schemes in links", () => {
+  const maliciousLink = "[Click me](javascript:alert('xss'))";
+  const { container } = render(<MarkdownRenderer content={maliciousLink} />);
+
+  const link = container.querySelector("a");
+  if (link) {
+    const href = link.getAttribute("href");
+    expect(href === null || !href.includes("javascript:")).toBe(true);
+  }
+});
+
+test("safely escapes quotes in heading data-section attributes", () => {
+  const quotedHeading = '# Analysis of "Q3 Revenue" Results';
+  render(<MarkdownRenderer content={quotedHeading} />);
+
+  const heading = screen.getByRole("heading", { level: 1 });
+  expect(heading).toBeInTheDocument();
+  expect(heading.getAttribute("data-section")).toBe('Analysis of "Q3 Revenue" Results');
+  expect(heading.textContent).toContain('Analysis of "Q3 Revenue" Results');
+});

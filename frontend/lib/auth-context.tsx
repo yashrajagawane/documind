@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-import { apiFetch } from "@/lib/api";
+import { apiFetch, registerAuthCallbacks, unregisterAuthCallbacks } from "@/lib/api";
 import type { AuthResponse, PublicUser } from "@/lib/types";
 
 type AuthContextValue = {
@@ -46,6 +46,23 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
     await apiFetch<void>("/auth/logout", { method: "POST" });
     setAccessToken(null);
     setUser(null);
+  }, []);
+
+  useEffect(() => {
+    registerAuthCallbacks({
+      onTokenRefreshed: (auth) => {
+        setAccessToken(auth.access_token);
+        setUser(auth.user);
+      },
+      onSessionExpired: () => {
+        setAccessToken(null);
+        setUser(null);
+      },
+    });
+
+    return () => {
+      unregisterAuthCallbacks();
+    };
   }, []);
 
   useEffect(() => {

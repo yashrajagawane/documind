@@ -154,7 +154,9 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
   }, [hasPending, accessToken]);
 
   const handleUpload = async (file: File) => {
-    if (!accessToken) return;
+    if (!accessToken) {
+      throw new Error("Authentication required. Please sign in to upload documents.");
+    }
     setMessage(null);
     const formData = new FormData();
     formData.append("file", file);
@@ -292,7 +294,7 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
 
   return (
     <div className="document-workspace">
-      <UploadZone onUpload={handleUpload} />
+      <UploadZone onUpload={handleUpload} disabled={!accessToken} />
 
       {message && (
         <p className="form-error" role="alert" style={{ marginTop: "1rem" }}>
