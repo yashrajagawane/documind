@@ -34,7 +34,7 @@ test("renders loading state", () => {
       onDelete={vi.fn()}
     />
   );
-  expect(screen.getByText("Loading your documents…")).toBeInTheDocument();
+  expect(screen.getByText(/Loading documents/i)).toBeInTheDocument();
 });
 
 test("renders empty state", () => {
@@ -46,10 +46,11 @@ test("renders empty state", () => {
       onDelete={vi.fn()}
     />
   );
-  expect(screen.getByText(/No documents uploaded yet/i)).toBeInTheDocument();
+  // The sidebar-style empty state uses different copy
+  expect(screen.getByText(/No documents yet/i)).toBeInTheDocument();
 });
 
-test("renders document items with action buttons", () => {
+test("renders document items with clickable name buttons", () => {
   render(
     <DocumentList
       documents={mockDocuments}
@@ -61,10 +62,13 @@ test("renders document items with action buttons", () => {
   expect(screen.getByText("contract.pdf")).toBeInTheDocument();
   expect(screen.getByText("data.xlsx")).toBeInTheDocument();
 
-  const previewButtons = screen.getAllByRole("button", { name: "Preview" });
-  expect(previewButtons).toHaveLength(2);
-  expect(previewButtons[0]).toBeEnabled();
-  expect(previewButtons[1]).toBeDisabled();
+  // The name itself IS the preview button now — ready docs are enabled
+  const contractBtn = screen.getByRole("button", { name: "contract.pdf" });
+  expect(contractBtn).toBeEnabled();
+
+  // Non-ready docs have the name button disabled
+  const xlsxBtn = screen.getByRole("button", { name: "data.xlsx" });
+  expect(xlsxBtn).toBeDisabled();
 });
 
 // ── Confirmation Dialog Tests ─────────────────────────────────────────────
@@ -79,9 +83,9 @@ test("clicking Delete opens the confirmation dialog", async () => {
     />
   );
 
-  const deleteButtons = screen.getAllByRole("button", { name: /delete/i });
-  // Click the first Delete button (contract.pdf)
-  fireEvent.click(deleteButtons[0]);
+  // Delete buttons now have aria-label "Delete <name>"
+  const deleteButton = screen.getByRole("button", { name: "Delete contract.pdf" });
+  fireEvent.click(deleteButton);
 
   expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
   expect(screen.getByText(/Delete document\?/i)).toBeInTheDocument();
@@ -102,14 +106,13 @@ test("clicking Cancel in the dialog does NOT call onDelete", async () => {
     />
   );
 
-  const deleteButtons = screen.getAllByRole("button", { name: /delete/i });
-  fireEvent.click(deleteButtons[0]);
+  const deleteButton = screen.getByRole("button", { name: "Delete contract.pdf" });
+  fireEvent.click(deleteButton);
 
   const cancelButton = await screen.findByRole("button", { name: /cancel/i });
   fireEvent.click(cancelButton);
 
   expect(onDelete).not.toHaveBeenCalled();
-  // Dialog should be gone
   expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
 });
 
@@ -124,8 +127,8 @@ test("pressing Escape closes the confirmation dialog without deleting", async ()
     />
   );
 
-  const deleteButtons = screen.getAllByRole("button", { name: /delete/i });
-  fireEvent.click(deleteButtons[0]);
+  const deleteButton = screen.getByRole("button", { name: "Delete contract.pdf" });
+  fireEvent.click(deleteButton);
 
   await screen.findByRole("alertdialog");
   fireEvent.keyDown(window, { key: "Escape" });
@@ -147,8 +150,8 @@ test("clicking 'Delete document' in dialog calls onDelete with correct id", asyn
     />
   );
 
-  const deleteButtons = screen.getAllByRole("button", { name: /delete/i });
-  fireEvent.click(deleteButtons[0]);
+  const deleteButton = screen.getByRole("button", { name: "Delete contract.pdf" });
+  fireEvent.click(deleteButton);
 
   const confirmButton = await screen.findByRole("button", { name: /delete document/i });
   fireEvent.click(confirmButton);
@@ -158,7 +161,7 @@ test("clicking 'Delete document' in dialog calls onDelete with correct id", asyn
   expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
 });
 
-test("shows 'Deleting…' and disabled button when deletingId matches", () => {
+test("shows disabled delete button when deletingId matches", () => {
   render(
     <DocumentList
       documents={mockDocuments}
@@ -169,8 +172,7 @@ test("shows 'Deleting…' and disabled button when deletingId matches", () => {
     />
   );
 
-  // The aria-label keeps "Delete contract.pdf" even when displaying "Deleting…"
-  // Query by visible text content instead
-  const deletingButton = screen.getByText("Deleting…");
-  expect(deletingButton.closest("button")).toBeDisabled();
+  // Compact mode shows "…" as the button text; it should be disabled
+  const deletingButton = screen.getByRole("button", { name: "Delete contract.pdf" });
+  expect(deletingButton).toBeDisabled();
 });

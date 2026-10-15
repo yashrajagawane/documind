@@ -112,27 +112,29 @@ export function DocumentList({
 }: Readonly<DocumentListProps>) {
   const [pendingDeleteDoc, setPendingDeleteDoc] = useState<DocumentSummary | null>(null);
 
-  const requestDelete = (doc: DocumentSummary) => {
-    setPendingDeleteDoc(doc);
-  };
+  const requestDelete = (doc: DocumentSummary) => setPendingDeleteDoc(doc);
 
   const confirmDelete = () => {
-    if (pendingDeleteDoc) {
-      onDelete(pendingDeleteDoc.id);
-    }
+    if (pendingDeleteDoc) onDelete(pendingDeleteDoc.id);
     setPendingDeleteDoc(null);
   };
 
-  const cancelDelete = () => {
-    setPendingDeleteDoc(null);
-  };
+  const cancelDelete = () => setPendingDeleteDoc(null);
 
   if (loading) {
-    return <p className="muted">Loading your documents…</p>;
+    return (
+      <p className="muted" style={{ padding: "0.75rem", fontSize: "0.82rem" }}>
+        Loading documents…
+      </p>
+    );
   }
 
   if (documents.length === 0) {
-    return <p className="muted">No documents uploaded yet. Upload a file above to begin.</p>;
+    return (
+      <p className="muted" style={{ padding: "0.75rem", fontSize: "0.82rem" }}>
+        No documents yet. Drop a file above.
+      </p>
+    );
   }
 
   return (
@@ -155,46 +157,60 @@ export function DocumentList({
           return (
             <li
               key={doc.id}
-              style={isSelected ? { borderColor: "var(--accent)" } : undefined}
+              className={isSelected ? "selected" : ""}
               aria-busy={isDeleting}
+              aria-current={isSelected ? "true" : undefined}
             >
-              <span>
-                <strong>{doc.original_name}</strong>
+              {/* Document name — clicking the row previews it */}
+              <button
+                type="button"
+                className="doc-item-name"
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: isReady ? "pointer" : "default",
+                  textAlign: "left",
+                  padding: 0,
+                  color: isReady ? "var(--text-primary)" : "var(--text-secondary)",
+                  width: "100%",
+                }}
+                disabled={!isReady}
+                onClick={() => isReady && onPreview(doc.id)}
+                title={doc.original_name}
+              >
+                {doc.original_name}
+              </button>
+
+              {/* Status chip + action buttons on the same row */}
+              <div className="doc-item-row">
                 <StatusBadge
                   status={doc.status}
                   stage={doc.processing_stage}
                   progress={doc.processing_progress}
                 />
-              </span>
-              <span className="document-actions">
-                <button
-                  className="link-button"
-                  type="button"
-                  disabled={!isReady}
-                  onClick={() => onPreview(doc.id)}
-                >
-                  {isSelected ? "Viewing" : "Preview"}
-                </button>
-                {isFailed && onRetry && (
+                <span className="document-actions">
+                  {isFailed && onRetry && (
+                    <button
+                      className="link-button"
+                      type="button"
+                      onClick={() => onRetry(doc.id)}
+                      style={{ color: "#fde68a" }}
+                      aria-label={`Retry processing ${doc.original_name}`}
+                    >
+                      Retry
+                    </button>
+                  )}
                   <button
-                    className="link-button"
+                    className="link-button danger"
                     type="button"
-                    onClick={() => onRetry(doc.id)}
-                    style={{ color: "#fde68a" }}
+                    disabled={isDeleting}
+                    aria-label={`Delete ${doc.original_name}`}
+                    onClick={() => requestDelete(doc)}
                   >
-                    Retry
+                    {isDeleting ? "…" : "Del"}
                   </button>
-                )}
-                <button
-                  className="link-button"
-                  type="button"
-                  disabled={isDeleting}
-                  aria-label={`Delete ${doc.original_name}`}
-                  onClick={() => requestDelete(doc)}
-                >
-                  {isDeleting ? "Deleting…" : "Delete"}
-                </button>
-              </span>
+                </span>
+              </div>
             </li>
           );
         })}

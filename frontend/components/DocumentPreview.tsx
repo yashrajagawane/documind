@@ -33,7 +33,7 @@ export function DocumentPreview({
   };
 
   return (
-    <article className="preview-panel" aria-labelledby="preview-heading">
+    <div aria-label={`Document preview: ${preview.original_name}`}>
       <div className="preview-header">
         <h2 id="preview-heading">{preview.original_name}</h2>
         <span>
@@ -168,6 +168,6 @@ export function DocumentPreview({
           </button>
         ))}
       </div>
-    </article>
+    </div>
   );
 }

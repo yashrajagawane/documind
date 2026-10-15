@@ -9,8 +9,16 @@ import { DocumentPreview } from "@/components/DocumentPreview";
 import { UploadZone } from "@/components/UploadZone";
 import { apiDownload, apiFetch, apiStreamSSE } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import type { ChatMessage, Citation, DocumentPreview as DocumentPreviewType, DocumentSummary } from "@/lib/types";
+import type {
+  ChatMessage,
+  Citation,
+  DocumentPreview as DocumentPreviewType,
+  DocumentSummary,
+} from "@/lib/types";
 
+/* ──────────────────────────────────────────────────────────────────
+   Root page — shows auth form or workspace shell
+────────────────────────────────────────────────────────────────── */
 export default function HomePage() {
   const { accessToken, user, isLoading, signIn, register, signOut } = useAuth();
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -36,24 +44,18 @@ export default function HomePage() {
   if (isLoading) {
     return (
       <main className="auth-shell">
-        <p>Restoring your session…</p>
+        <p className="muted">Restoring your session…</p>
       </main>
     );
   }
 
   if (user) {
     return (
-      <main className="auth-shell">
-        <section className="auth-card auth-card-wide" aria-labelledby="welcome-heading">
-          <p className="eyebrow">DocuMind</p>
-          <h1 id="welcome-heading">Your workspace is ready.</h1>
-          <p className="muted">Signed in as {user.email}. Upload a private document to begin.</p>
-          <DocumentWorkspace accessToken={accessToken} />
-          <button className="button" type="button" onClick={() => void signOut()} style={{ marginTop: "1.5rem" }}>
-            Sign out
-          </button>
-        </section>
-      </main>
+      <DocumentWorkspace
+        accessToken={accessToken}
+        userEmail={user.email}
+        onSignOut={() => void signOut()}
+      />
     );
   }
 
@@ -61,7 +63,9 @@ export default function HomePage() {
     <main className="auth-shell">
       <section className="auth-card" aria-labelledby="auth-heading">
         <p className="eyebrow">DocuMind</p>
-        <h1 id="auth-heading">{mode === "login" ? "Welcome back." : "Create your workspace."}</h1>
+        <h1 id="auth-heading">
+          {mode === "login" ? "Welcome back." : "Create your workspace."}
+        </h1>
         <p className="muted">Secure document intelligence starts with a private account.</p>
         <form onSubmit={submit}>
           <label htmlFor="email">Email</label>
@@ -95,6 +99,7 @@ export default function HomePage() {
         <button
           className="link-button"
           type="button"
+          style={{ marginTop: "1rem" }}
           onClick={() => setMode(mode === "login" ? "register" : "login")}
         >
           {mode === "login" ? "Need an account? Register" : "Already have an account? Sign in"}
@@ -104,9 +109,18 @@ export default function HomePage() {
   );
 }
 
-function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | null }>) {
+/* ──────────────────────────────────────────────────────────────────
+   3-Pane Document Workspace
+────────────────────────────────────────────────────────────────── */
+interface WorkspaceProps {
+  accessToken: string | null;
+  userEmail: string;
+  onSignOut: () => void;
+}
+
+function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<WorkspaceProps>) {
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
-  const [message, setMessage] = useState<string | null>(null);
+  const [globalMessage, setGlobalMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState<DocumentPreviewType | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -115,87 +129,68 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [exportingFormat, setExportingFormat] = useState<string | null>(null);
 
-  // Initial fetch on authentication
+  /* ── Initial document fetch ─────────────────────────────────── */
   useEffect(() => {
     if (!accessToken) return;
     let isCancelled = false;
 
     apiFetch<DocumentSummary[]>("/documents", {}, accessToken)
-      .then((data) => {
-        if (!isCancelled) setDocuments(data);
+      .then((data) => { if (!isCancelled) setDocuments(data); })
+      .catch((err: unknown) => {
+        if (!isCancelled)
+          setGlobalMessage(err instanceof Error ? err.message : "Could not load documents.");
       })
-      .catch((error: unknown) => {
-        if (!isCancelled) {
-          setMessage(error instanceof Error ? error.message : "Could not load documents.");
-        }
-      })
-      .finally(() => {
-        if (!isCancelled) setLoading(false);
-      });
+      .finally(() => { if (!isCancelled) setLoading(false); });
 
-    return () => {
-      isCancelled = true;
-    };
+    return () => { isCancelled = true; };
   }, [accessToken]);
 
-  // Live polling: if any document is in non-terminal state, poll every 2.5 seconds
+  /* ── Background polling for in-progress documents ───────────── */
   const hasPending = documents.some(
     (doc) => doc.status !== "ready" && doc.status !== "failed"
   );
 
   useEffect(() => {
     if (!hasPending || !accessToken) return;
-
     const timer = setInterval(() => {
       apiFetch<DocumentSummary[]>("/documents", {}, accessToken)
         .then(setDocuments)
         .catch(() => undefined);
     }, 2500);
-
     return () => clearInterval(timer);
   }, [hasPending, accessToken]);
 
+  /* ── Handlers ───────────────────────────────────────────────── */
   const handleUpload = async (file: File) => {
     if (!accessToken) {
       throw new Error("Authentication required. Please sign in to upload documents.");
     }
-    setMessage(null);
+    setGlobalMessage(null);
     const formData = new FormData();
     formData.append("file", file);
-
     const uploaded = await apiFetch<DocumentSummary>(
       "/documents",
-      {
-        method: "POST",
-        body: formData,
-        headers: { "Idempotency-Key": crypto.randomUUID() },
-      },
+      { method: "POST", body: formData, headers: { "Idempotency-Key": crypto.randomUUID() } },
       accessToken
     );
-
-    setDocuments((current) => [
-      uploaded,
-      ...current.filter((item) => item.id !== uploaded.id),
-    ]);
+    setDocuments((current) => [uploaded, ...current.filter((item) => item.id !== uploaded.id)]);
   };
 
   const handleRemove = async (id: string) => {
     if (!accessToken) return;
     setDeletingId(id);
-    setMessage(null);
+    setGlobalMessage(null);
     try {
       await apiFetch<void>(`/documents/${id}`, { method: "DELETE" }, accessToken);
-      setDocuments((current) => current.filter((document) => document.id !== id));
+      setDocuments((current) => current.filter((doc) => doc.id !== id));
       if (preview?.id === id) {
         setPreview(null);
         setMessages([]);
         setHighlightSection(null);
       }
     } catch (err) {
-      setMessage(
-        err instanceof Error
-          ? err.message
-          : "Failed to delete the document. Please try again."
+      setGlobalMessage(
+        err instanceof Error ? err.message : "Failed to delete the document. Please try again."
       );
     } finally {
       setDeletingId(null);
@@ -210,11 +205,9 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
         { method: "POST" },
         accessToken
       );
-      setDocuments((current) =>
-        current.map((doc) => (doc.id === id ? retried : doc))
-      );
+      setDocuments((current) => current.map((doc) => (doc.id === id ? retried : doc)));
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Could not retry document processing.");
+      setGlobalMessage(err instanceof Error ? err.message : "Could not retry document processing.");
     }
   };
 
@@ -229,16 +222,16 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
       setPreview(previewData);
       setMessages([]);
       setHighlightSection(null);
-      setMessage(null);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Preview is not ready.");
+      setGlobalMessage(null);
+    } catch (err) {
+      setGlobalMessage(err instanceof Error ? err.message : "Preview is not ready.");
     }
   };
 
   const handleAsk = async (questionText: string) => {
     if (!accessToken || !preview) return;
     setAsking(true);
-    setMessage(null);
+    setGlobalMessage(null);
 
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
@@ -259,10 +252,7 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
     setMessages((prev) => [...prev, assistantMessage]);
 
     try {
-      const history = messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
+      const history = messages.map((m) => ({ role: m.role, content: m.content }));
 
       for await (const { event, data } of apiStreamSSE(
         `/documents/${preview.id}/chat/stream`,
@@ -283,11 +273,13 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
           );
         } else if (event === "error") {
           const parsed = JSON.parse(data) as { error: string };
-          setMessage(parsed.error);
+          setGlobalMessage(parsed.error);
         }
       }
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "The question could not be answered.");
+    } catch (err) {
+      setGlobalMessage(
+        err instanceof Error ? err.message : "The question could not be answered."
+      );
     } finally {
       setAsking(false);
     }
@@ -296,7 +288,7 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
   const handleDownload = async (format: string) => {
     if (!accessToken || !preview) return;
     setExportingFormat(format);
-    setMessage(null);
+    setGlobalMessage(null);
     try {
       const blob = await apiDownload(
         `/documents/${preview.id}/export?format=${format}`,
@@ -309,44 +301,150 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
       anchor.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setMessage(
-        err instanceof Error
-          ? err.message
-          : `Failed to export as ${format}. Please try again.`
+      setGlobalMessage(
+        err instanceof Error ? err.message : `Failed to export as ${format}. Please try again.`
       );
     } finally {
       setExportingFormat(null);
     }
   };
 
+  /* ── Layout ─────────────────────────────────────────────────── */
+  const wordCount = preview?.metadata?.word_count ?? 0;
+  const tableCount = preview?.tables?.length ?? 0;
+
   return (
-    <div className="document-workspace">
-      <UploadZone onUpload={handleUpload} disabled={!accessToken} />
+    <main className="workspace-shell">
+      {/* ── LEFT SIDEBAR ──────────────────────────────────────── */}
+      <aside className="workspace-sidebar" aria-label="Navigation sidebar">
+        {/* Brand header */}
+        <div className="sidebar-header">
+          <p className="sidebar-brand">DocuMind</p>
+        </div>
 
-      {message && (
-        <p className="form-error" role="alert" style={{ marginTop: "1rem" }}>
-          {message}
-        </p>
-      )}
+        {/* Upload zone */}
+        <div className="sidebar-upload-zone">
+          <UploadZone onUpload={handleUpload} disabled={!accessToken} compact />
+        </div>
 
-      <DocumentList
-        documents={documents}
-        loading={loading}
-        selectedDocumentId={preview?.id}
-        deletingId={deletingId}
-        onPreview={(id) => void handlePreview(id)}
-        onDelete={(id) => void handleRemove(id)}
-        onRetry={(id) => void handleRetry(id)}
-      />
+        {/* Error alert */}
+        {globalMessage && (
+          <div className="workspace-alert" role="alert">
+            <span>⚠</span>
+            <span>{globalMessage}</span>
+          </div>
+        )}
 
-      {preview && (
-        <>
-          <DocumentPreview
-            preview={preview}
-            highlightSection={highlightSection}
-            exporting={exportingFormat}
-            onDownload={(format) => void handleDownload(format)}
+        {/* Document list heading */}
+        <div className="sidebar-docs-heading">
+          <span>Documents</span>
+          <span style={{ color: "var(--text-muted)" }}>
+            {documents.length > 0 ? documents.length : ""}
+          </span>
+        </div>
+
+        {/* Document list */}
+        <div className="sidebar-doc-list">
+          <DocumentList
+            documents={documents}
+            loading={loading}
+            selectedDocumentId={preview?.id}
+            deletingId={deletingId}
+            onPreview={(id) => void handlePreview(id)}
+            onDelete={(id) => void handleRemove(id)}
+            onRetry={(id) => void handleRetry(id)}
           />
+        </div>
+
+        {/* Footer — user email + sign out */}
+        <div className="sidebar-footer">
+          <span className="sidebar-user-email" title={userEmail}>
+            {userEmail}
+          </span>
+          <button
+            type="button"
+            className="link-button sidebar-signout"
+            onClick={onSignOut}
+          >
+            Sign out
+          </button>
+        </div>
+      </aside>
+
+      {/* ── CENTER PANE — Document Preview ────────────────────── */}
+      <div className="workspace-center">
+        {preview ? (
+          <>
+            {/* Sticky header */}
+            <div className="center-header">
+              <span className="center-doc-title" title={preview.original_name}>
+                {preview.original_name}
+              </span>
+              <span className="center-doc-meta">
+                {wordCount.toLocaleString()} words
+                {tableCount > 0 ? ` · ${tableCount} table${tableCount === 1 ? "" : "s"}` : ""}
+              </span>
+            </div>
+
+            {/* Scrollable content */}
+            <div className="center-body">
+              <DocumentPreview
+                preview={preview}
+                highlightSection={highlightSection}
+                exporting={exportingFormat}
+                onDownload={(format) => void handleDownload(format)}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="center-header">
+              <span className="center-doc-title" style={{ color: "var(--text-muted)" }}>
+                No document selected
+              </span>
+            </div>
+            <div className="center-body">
+              <div className="center-empty">
+                <div className="center-empty-icon">📄</div>
+                <p className="center-empty-title">Select a document to preview</p>
+                <p className="center-empty-desc">
+                  Upload a file using the sidebar, then click{" "}
+                  <strong>Preview</strong> on a ready document to view its extracted content here.
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ── RIGHT PANE — Chat ─────────────────────────────────── */}
+      <div className="workspace-chat" aria-label="AI chat panel">
+        <div className="chat-pane-header">
+          <div style={{ minWidth: 0 }}>
+            <p className="chat-pane-label">Grounded Q&amp;A</p>
+            {preview ? (
+              <p className="chat-pane-title" title={preview.original_name}>
+                {preview.original_name}
+              </p>
+            ) : (
+              <p className="chat-pane-title" style={{ color: "var(--text-muted)" }}>
+                No document selected
+              </p>
+            )}
+          </div>
+          {messages.length > 0 && (
+            <button
+              type="button"
+              className="link-button"
+              style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
+              onClick={() => setMessages([])}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
+        {preview ? (
           <ChatPanel
             documentId={preview.id}
             documentName={preview.original_name}
@@ -358,8 +456,17 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
               if (citation.section) setHighlightSection(citation.section);
             }}
           />
-        </>
-      )}
-    </div>
+        ) : (
+          <div className="chat-messages-area">
+            <div className="chat-empty-state">
+              <div className="chat-empty-icon">💬</div>
+              <p className="chat-empty-text">
+                Select a document from the sidebar to start asking questions.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </main>
   );
 }

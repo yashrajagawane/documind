@@ -6,6 +6,8 @@ import type { ChangeEvent, DragEvent } from "react";
 interface UploadZoneProps {
   onUpload: (file: File) => Promise<void>;
   disabled?: boolean;
+  /** Compact mode for sidebar: smaller padding and abbreviated text. */
+  compact?: boolean;
 }
 
 export interface UploadQueueItem {
@@ -25,7 +27,7 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function UploadZone({ onUpload, disabled = false }: Readonly<UploadZoneProps>) {
+export function UploadZone({ onUpload, disabled = false, compact = false }: Readonly<UploadZoneProps>) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [queue, setQueue] = useState<UploadQueueItem[]>([]);
   const [generalError, setGeneralError] = useState<string | null>(null);
@@ -125,10 +127,12 @@ export function UploadZone({ onUpload, disabled = false }: Readonly<UploadZonePr
   const hasCompleted = queue.some((item) => item.status === "success");
 
   return (
-    <section aria-labelledby="upload-heading" style={{ marginBottom: "1rem" }}>
-      <h2 id="upload-heading" style={{ fontSize: "0.95rem", margin: "0 0 0.5rem" }}>
-        Document Ingestion
-      </h2>
+    <section aria-labelledby="upload-heading" style={{ marginBottom: compact ? "0" : "1rem" }}>
+      {!compact && (
+        <h2 id="upload-heading" style={{ fontSize: "0.95rem", margin: "0 0 0.5rem" }}>
+          Document Ingestion
+        </h2>
+      )}
 
       <div
         className={`upload-dropzone ${isDragOver ? "drag-active" : ""}`}
@@ -158,12 +162,23 @@ export function UploadZone({ onUpload, disabled = false }: Readonly<UploadZonePr
         />
 
         <div style={{ pointerEvents: "none" }}>
-          <p style={{ margin: "0 0 0.25rem", fontWeight: 600, fontSize: "0.92rem" }}>
-            {isDragOver ? "Drop files to upload instantly" : "Drag & drop files here, or click to browse"}
+          <p style={{ margin: "0 0 0.2rem", fontWeight: 600, fontSize: compact ? "0.8rem" : "0.92rem" }}>
+            {isDragOver
+              ? "Drop to upload"
+              : compact
+              ? "Drop files or click to browse"
+              : "Drag & drop files here, or click to browse"}
           </p>
-          <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.8rem" }}>
-            Supports PDF, DOCX, XLSX, PPTX, TXT, CSV, MD up to 25MB each (batch upload enabled)
-          </p>
+          {!compact && (
+            <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.8rem" }}>
+              Supports PDF, DOCX, XLSX, PPTX, TXT, CSV, MD up to 25MB each (batch upload enabled)
+            </p>
+          )}
+          {compact && (
+            <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.72rem" }}>
+              PDF, DOCX, XLSX, PPTX, TXT, CSV, MD · 25MB max
+            </p>
+          )}
         </div>
       </div>
 

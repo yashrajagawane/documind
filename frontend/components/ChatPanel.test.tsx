@@ -19,7 +19,7 @@ const makeMsg = (overrides: Partial<ChatMessage> = {}): ChatMessage => ({
 // Rendering
 // ---------------------------------------------------------------------------
 
-test("renders the document name in the heading", () => {
+test("renders the question textarea and submit button", () => {
   render(
     <ChatPanel
       documentId="doc-1"
@@ -29,7 +29,9 @@ test("renders the document name in the heading", () => {
       onAsk={noop}
     />
   );
-  expect(screen.getByText(/Annual Report 2025/i)).toBeInTheDocument();
+  // documentName is rendered in the workspace pane header, not inside ChatPanel
+  expect(screen.getByRole("textbox")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /ask question/i })).toBeInTheDocument();
 });
 
 test("renders a textarea and submit button", () => {
@@ -81,7 +83,8 @@ test("submit button is disabled while asking is true", () => {
       onAsk={noop}
     />
   );
-  expect(screen.getByRole("button", { name: /searching/i })).toBeDisabled();
+  // Button text changed to "Generating…" in Phase 3
+  expect(screen.getByRole("button", { name: /generating/i })).toBeDisabled();
 });
 
 test("submit button is disabled when textarea is empty", () => {
@@ -119,9 +122,10 @@ test("renders user and assistant messages from history", () => {
   expect(screen.getByText("The revenue was $10M.")).toBeInTheDocument();
 });
 
-test("shows Clear History button when messages exist and handler provided", () => {
+test("Clear History button is NOT rendered inside ChatPanel (moved to workspace header)", () => {
+  // In Phase 3, the Clear/History button lives in the workspace pane header (page.tsx).
+  // ChatPanel no longer renders it internally.
   const messages = [makeMsg()];
-  const onClearHistory = vi.fn();
   render(
     <ChatPanel
       documentId="doc-1"
@@ -129,13 +133,10 @@ test("shows Clear History button when messages exist and handler provided", () =
       messages={messages}
       asking={false}
       onAsk={noop}
-      onClearHistory={onClearHistory}
+      onClearHistory={vi.fn()}
     />
   );
-  const btn = screen.getByRole("button", { name: /clear history/i });
-  expect(btn).toBeInTheDocument();
-  fireEvent.click(btn);
-  expect(onClearHistory).toHaveBeenCalledOnce();
+  expect(screen.queryByRole("button", { name: /clear history/i })).not.toBeInTheDocument();
 });
 
 test("does not show Clear History button when messages array is empty", () => {
