@@ -7,12 +7,15 @@ import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 interface DocumentPreviewProps {
   preview: DocumentPreviewType;
   highlightSection?: string | null;
+  /** The format currently being exported (e.g. "markdown"), or null when idle. */
+  exporting?: string | null;
   onDownload: (format: string) => void;
 }
 
 export function DocumentPreview({
   preview,
   highlightSection = null,
+  exporting = null,
   onDownload,
 }: Readonly<DocumentPreviewProps>) {
   const [activeTab, setActiveTab] = useState<"markdown" | "tables">("markdown");
@@ -148,19 +151,22 @@ export function DocumentPreview({
       )}
 
       <div className="export-actions" aria-label="Export document formats" style={{ marginTop: "1rem" }}>
-        <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>Export:</span>
-        <button className="link-button" type="button" onClick={() => onDownload("markdown")}>
-          Markdown
-        </button>
-        <button className="link-button" type="button" onClick={() => onDownload("json")}>
-          JSON
-        </button>
-        <button className="link-button" type="button" onClick={() => onDownload("html")}>
-          HTML
-        </button>
-        <button className="link-button" type="button" onClick={() => onDownload("txt")}>
-          TXT
-        </button>
+        <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+          {exporting ? "Exporting…" : "Export:"}
+        </span>
+        {(["markdown", "json", "html", "txt"] as const).map((fmt) => (
+          <button
+            key={fmt}
+            className="link-button"
+            type="button"
+            disabled={exporting !== null}
+            aria-label={`Export as ${fmt}${exporting === fmt ? " — in progress" : ""}`}
+            onClick={() => onDownload(fmt)}
+            style={exporting === fmt ? { opacity: 0.5, cursor: "wait" } : undefined}
+          >
+            {fmt.charAt(0).toUpperCase() + fmt.slice(1)}
+          </button>
+        ))}
       </div>
     </article>
   );

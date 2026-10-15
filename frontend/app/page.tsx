@@ -112,6 +112,8 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [asking, setAsking] = useState(false);
   const [highlightSection, setHighlightSection] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [exportingFormat, setExportingFormat] = useState<string | null>(null);
 
   // Initial fetch on authentication
   useEffect(() => {
@@ -179,11 +181,24 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
 
   const handleRemove = async (id: string) => {
     if (!accessToken) return;
-    await apiFetch<void>(`/documents/${id}`, { method: "DELETE" }, accessToken);
-    setDocuments((current) => current.filter((document) => document.id !== id));
-    if (preview?.id === id) {
-      setPreview(null);
-      setMessages([]);
+    setDeletingId(id);
+    setMessage(null);
+    try {
+      await apiFetch<void>(`/documents/${id}`, { method: "DELETE" }, accessToken);
+      setDocuments((current) => current.filter((document) => document.id !== id));
+      if (preview?.id === id) {
+        setPreview(null);
+        setMessages([]);
+        setHighlightSection(null);
+      }
+    } catch (err) {
+      setMessage(
+        err instanceof Error
+          ? err.message
+          : "Failed to delete the document. Please try again."
+      );
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -280,16 +295,28 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
 
   const handleDownload = async (format: string) => {
     if (!accessToken || !preview) return;
-    const blob = await apiDownload(
-      `/documents/${preview.id}/export?format=${format}`,
-      accessToken
-    );
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `${preview.original_name}.${format}`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    setExportingFormat(format);
+    setMessage(null);
+    try {
+      const blob = await apiDownload(
+        `/documents/${preview.id}/export?format=${format}`,
+        accessToken
+      );
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${preview.original_name}.${format}`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setMessage(
+        err instanceof Error
+          ? err.message
+          : `Failed to export as ${format}. Please try again.`
+      );
+    } finally {
+      setExportingFormat(null);
+    }
   };
 
   return (
@@ -316,6 +343,7 @@ function DocumentWorkspace({ accessToken }: Readonly<{ accessToken: string | nul
           <DocumentPreview
             preview={preview}
             highlightSection={highlightSection}
+            exporting={exportingFormat}
             onDownload={(format) => void handleDownload(format)}
           />
           <ChatPanel
