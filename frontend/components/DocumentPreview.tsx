@@ -32,6 +32,22 @@ export function DocumentPreview({
     setTimeout(() => setCopiedTableIndex(null), 2000);
   };
 
+  const handleTabKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    currentTab: "markdown" | "tables"
+  ) => {
+    if (tables.length === 0) return;
+    if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+      event.preventDefault();
+      const nextTab = currentTab === "markdown" ? "tables" : "markdown";
+      setActiveTab(nextTab);
+      const nextId = nextTab === "markdown" ? "tab-markdown" : "tab-tables";
+      setTimeout(() => {
+        document.getElementById(nextId)?.focus();
+      }, 0);
+    }
+  };
+
   return (
     <div aria-label={`Document preview: ${preview.original_name}`}>
       <div className="preview-header">
@@ -43,23 +59,31 @@ export function DocumentPreview({
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0.5rem 0", flexWrap: "wrap", gap: "0.5rem" }}>
-        <div className="preview-tabs" role="tablist" style={{ margin: 0, borderBottom: 0, paddingBottom: 0 }}>
+        <div className="preview-tabs" role="tablist" aria-label="Document view tabs" style={{ margin: 0, borderBottom: 0, paddingBottom: 0 }}>
           <button
+            id="tab-markdown"
             className={`tab-button ${activeTab === "markdown" ? "active" : ""}`}
             type="button"
             role="tab"
             aria-selected={activeTab === "markdown"}
+            aria-controls="panel-markdown"
+            tabIndex={activeTab === "markdown" ? 0 : -1}
             onClick={() => setActiveTab("markdown")}
+            onKeyDown={(e) => handleTabKeyDown(e, "markdown")}
           >
             Markdown Content
           </button>
           {tables.length > 0 && (
             <button
+              id="tab-tables"
               className={`tab-button ${activeTab === "tables" ? "active" : ""}`}
               type="button"
               role="tab"
               aria-selected={activeTab === "tables"}
+              aria-controls="panel-tables"
+              tabIndex={activeTab === "tables" ? 0 : -1}
               onClick={() => setActiveTab("tables")}
+              onKeyDown={(e) => handleTabKeyDown(e, "tables")}
             >
               Extracted Tables ({tables.length})
             </button>
@@ -67,10 +91,11 @@ export function DocumentPreview({
         </div>
 
         {activeTab === "markdown" && (
-          <div style={{ display: "flex", gap: "0.35rem" }}>
+          <div role="group" aria-label="Markdown view mode" style={{ display: "flex", gap: "0.35rem" }}>
             <button
               type="button"
               className={`tab-button ${viewMode === "rendered" ? "active" : ""}`}
+              aria-pressed={viewMode === "rendered"}
               onClick={() => setViewMode("rendered")}
               style={{ fontSize: "0.78rem", padding: "0.25rem 0.55rem" }}
             >
@@ -79,6 +104,7 @@ export function DocumentPreview({
             <button
               type="button"
               className={`tab-button ${viewMode === "raw" ? "active" : ""}`}
+              aria-pressed={viewMode === "raw"}
               onClick={() => setViewMode("raw")}
               style={{ fontSize: "0.78rem", padding: "0.25rem 0.55rem" }}
             >
@@ -89,20 +115,33 @@ export function DocumentPreview({
       </div>
 
       {activeTab === "markdown" ? (
-        viewMode === "rendered" ? (
-          <div style={{ maxHeight: "28rem", overflowY: "auto", padding: "0.5rem 0.75rem", background: "var(--surface)", borderRadius: "0.5rem", border: "1px solid var(--border)" }}>
-            <MarkdownRenderer
-              content={preview.markdown}
-              highlightSection={highlightSection}
-            />
-          </div>
-        ) : (
-          <pre tabIndex={0} aria-label="Extracted raw markdown text" style={{ background: "var(--surface)", padding: "0.75rem", borderRadius: "0.5rem" }}>
-            {preview.markdown}
-          </pre>
-        )
+        <div
+          role="tabpanel"
+          id="panel-markdown"
+          aria-labelledby="tab-markdown"
+          tabIndex={0}
+        >
+          {viewMode === "rendered" ? (
+            <div style={{ maxHeight: "28rem", overflowY: "auto", padding: "0.5rem 0.75rem", background: "var(--surface)", borderRadius: "0.5rem", border: "1px solid var(--border)" }}>
+              <MarkdownRenderer
+                content={preview.markdown}
+                highlightSection={highlightSection}
+              />
+            </div>
+          ) : (
+            <pre tabIndex={0} role="region" aria-label="Extracted raw markdown text" style={{ background: "var(--surface)", padding: "0.75rem", borderRadius: "0.5rem" }}>
+              {preview.markdown}
+            </pre>
+          )}
+        </div>
       ) : (
-        <div className="table-wrapper">
+        <div
+          role="tabpanel"
+          id="panel-tables"
+          aria-labelledby="tab-tables"
+          tabIndex={0}
+          className="table-wrapper"
+        >
           {tables.map((table, index) => {
             const markdownTable = typeof table.markdown === "string" ? table.markdown : "";
             const rows = Array.isArray(table.rows) ? (table.rows as Record<string, unknown>[]) : [];
@@ -150,7 +189,7 @@ export function DocumentPreview({
         </div>
       )}
 
-      <div className="export-actions" aria-label="Export document formats" style={{ marginTop: "1rem" }}>
+      <div className="export-actions" role="group" aria-label="Export document formats" style={{ marginTop: "1rem" }}>
         <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
           {exporting ? "Exporting…" : "Export:"}
         </span>

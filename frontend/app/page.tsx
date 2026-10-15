@@ -358,111 +358,121 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
   const tableCount = preview?.tables?.length ?? 0;
 
   return (
-    <main className="workspace-shell">
-      {/* ── LEFT SIDEBAR ──────────────────────────────────────── */}
-      <aside className="workspace-sidebar" aria-label="Navigation sidebar">
-        {/* Brand header */}
-        <div className="sidebar-header">
-          <p className="sidebar-brand">DocuMind</p>
-        </div>
+    <>
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
 
-        {/* Upload zone */}
-        <div className="sidebar-upload-zone">
-          <UploadZone onUpload={handleUpload} disabled={!accessToken} compact />
-        </div>
-
-        {/* Error alert */}
-        {globalMessage && (
-          <div className="workspace-alert" role="alert">
-            <span>⚠</span>
-            <span>{globalMessage}</span>
+      <div className="workspace-shell">
+        {/* ── LEFT SIDEBAR ──────────────────────────────────────── */}
+        <aside className="workspace-sidebar" aria-label="Navigation sidebar">
+          {/* Brand header */}
+          <div className="sidebar-header">
+            <p className="sidebar-brand">DocuMind</p>
           </div>
-        )}
 
-        {/* Document list heading */}
-        <div className="sidebar-docs-heading">
-          <span>Documents</span>
-          <span style={{ color: "var(--text-muted)" }}>
-            {documents.length > 0 ? documents.length : ""}
-          </span>
-        </div>
+          {/* Upload zone */}
+          <div className="sidebar-upload-zone">
+            <UploadZone onUpload={handleUpload} disabled={!accessToken} compact />
+          </div>
 
-        {/* Document list */}
-        <div className="sidebar-doc-list">
-          <DocumentList
-            documents={documents}
-            loading={loading}
-            selectedDocumentId={preview?.id}
-            deletingId={deletingId}
-            onPreview={(id) => void handlePreview(id)}
-            onDelete={(id) => void handleRemove(id)}
-            onRetry={(id) => void handleRetry(id)}
-          />
-        </div>
-
-        {/* Footer — user email + sign out */}
-        <div className="sidebar-footer">
-          <span className="sidebar-user-email" title={userEmail}>
-            {userEmail}
-          </span>
-          <button
-            type="button"
-            className="link-button sidebar-signout"
-            onClick={onSignOut}
-          >
-            Sign out
-          </button>
-        </div>
-      </aside>
-
-      {/* ── CENTER PANE — Document Preview ────────────────────── */}
-      <div className="workspace-center">
-        {preview ? (
-          <>
-            {/* Sticky header */}
-            <div className="center-header">
-              <span className="center-doc-title" title={preview.original_name}>
-                {preview.original_name}
-              </span>
-              <span className="center-doc-meta">
-                {wordCount.toLocaleString()} words
-                {tableCount > 0 ? ` · ${tableCount} table${tableCount === 1 ? "" : "s"}` : ""}
-              </span>
+          {/* Error alert */}
+          {globalMessage && (
+            <div className="workspace-alert" role="alert">
+              <span>⚠</span>
+              <span>{globalMessage}</span>
             </div>
+          )}
 
-            {/* Scrollable content */}
-            <div className="center-body">
-              <DocumentPreview
-                preview={preview}
-                highlightSection={highlightSection}
-                exporting={exportingFormat}
-                onDownload={(format) => void handleDownload(format)}
-              />
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="center-header">
-              <span className="center-doc-title" style={{ color: "var(--text-muted)" }}>
-                No document selected
-              </span>
-            </div>
-            <div className="center-body">
-              <div className="center-empty">
-                <div className="center-empty-icon">📄</div>
-                <p className="center-empty-title">Select a document to preview</p>
-                <p className="center-empty-desc">
-                  Upload a file using the sidebar, then click{" "}
-                  <strong>Preview</strong> on a ready document to view its extracted content here.
-                </p>
+          {/* Document list heading */}
+          <div className="sidebar-docs-heading">
+            <span>Documents</span>
+            <span style={{ color: "var(--text-muted)" }}>
+              {documents.length > 0 ? documents.length : ""}
+            </span>
+          </div>
+
+          {/* Document list */}
+          <div className="sidebar-doc-list">
+            <DocumentList
+              documents={documents}
+              loading={loading}
+              selectedDocumentId={preview?.id}
+              deletingId={deletingId}
+              onPreview={(id) => void handlePreview(id)}
+              onDelete={(id) => void handleRemove(id)}
+              onRetry={(id) => void handleRetry(id)}
+            />
+          </div>
+
+          {/* Footer — user email + sign out */}
+          <div className="sidebar-footer">
+            <span className="sidebar-user-email" title={userEmail}>
+              {userEmail}
+            </span>
+            <button
+              type="button"
+              className="link-button sidebar-signout"
+              onClick={onSignOut}
+            >
+              Sign out
+            </button>
+          </div>
+        </aside>
+
+        {/* ── CENTER PANE — Document Preview (Main Landmark) ───── */}
+        <main
+          id="main-content"
+          className="workspace-center"
+          aria-label="Document viewer"
+          tabIndex={-1}
+        >
+          {preview ? (
+            <>
+              {/* Sticky header */}
+              <div className="center-header">
+                <span className="center-doc-title" title={preview.original_name}>
+                  {preview.original_name}
+                </span>
+                <span className="center-doc-meta">
+                  {wordCount.toLocaleString()} words
+                  {tableCount > 0 ? ` · ${tableCount} table${tableCount === 1 ? "" : "s"}` : ""}
+                </span>
               </div>
-            </div>
-          </>
-        )}
-      </div>
 
-      {/* ── RIGHT PANE — Chat ─────────────────────────────────── */}
-      <div className="workspace-chat" aria-label="AI chat panel">
+              {/* Scrollable content */}
+              <div className="center-body">
+                <DocumentPreview
+                  preview={preview}
+                  highlightSection={highlightSection}
+                  exporting={exportingFormat}
+                  onDownload={(format) => void handleDownload(format)}
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="center-header">
+                <span className="center-doc-title" style={{ color: "var(--text-muted)" }}>
+                  No document selected
+                </span>
+              </div>
+              <div className="center-body">
+                <div className="center-empty">
+                  <div className="center-empty-icon">📄</div>
+                  <p className="center-empty-title">Select a document to preview</p>
+                  <p className="center-empty-desc">
+                    Upload a file using the sidebar, then click{" "}
+                    <strong>Preview</strong> on a ready document to view its extracted content here.
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+        </main>
+
+        {/* ── RIGHT PANE — Chat (Complementary Landmark) ───────── */}
+        <aside className="workspace-chat" aria-label="AI chat panel">
         <div className="chat-pane-header">
           <div style={{ minWidth: 0 }}>
             <p className="chat-pane-label">Grounded Q&amp;A</p>
@@ -511,7 +521,8 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
             </div>
           </div>
         )}
+        </aside>
       </div>
-    </main>
+    </>
   );
 }

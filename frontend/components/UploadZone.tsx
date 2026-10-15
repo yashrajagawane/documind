@@ -135,7 +135,7 @@ export function UploadZone({ onUpload, disabled = false, compact = false }: Read
       )}
 
       <div
-        className={`upload-dropzone ${isDragOver ? "drag-active" : ""}`}
+        className={`upload-dropzone ${isDragOver ? "drag-active" : ""}${disabled ? " disabled" : ""}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -151,17 +151,22 @@ export function UploadZone({ onUpload, disabled = false, compact = false }: Read
         }}
       >
         <input
+          id="file-upload-input"
           ref={fileInputRef}
           type="file"
           multiple
           accept=".pdf,.docx,.xlsx,.pptx,.txt,.csv,.md"
           disabled={disabled}
-          style={{ display: "none" }}
+          className="sr-only"
           onChange={handleInputChange}
-          aria-hidden="true"
+          tabIndex={-1}
+          aria-label="File upload"
         />
 
-        <div style={{ pointerEvents: "none" }}>
+        <label
+          htmlFor="file-upload-input"
+          style={{ pointerEvents: "none", cursor: disabled ? "not-allowed" : "pointer" }}
+        >
           <p style={{ margin: "0 0 0.2rem", fontWeight: 600, fontSize: compact ? "0.8rem" : "0.92rem" }}>
             {isDragOver
               ? "Drop to upload"
@@ -179,7 +184,7 @@ export function UploadZone({ onUpload, disabled = false, compact = false }: Read
               PDF, DOCX, XLSX, PPTX, TXT, CSV, MD · 25MB max
             </p>
           )}
-        </div>
+        </label>
       </div>
 
       {generalError && (
@@ -222,8 +227,11 @@ export function UploadZone({ onUpload, disabled = false, compact = false }: Read
                   fontSize: "0.82rem",
                 }}
               >
-                <div style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  <strong>{item.name}</strong>{" "}
+                <div
+                  style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                  title={item.name}
+                >
+                  <strong style={{ wordBreak: "break-all" }}>{item.name}</strong>{" "}
                   <small style={{ color: "var(--text-secondary)" }}>({formatBytes(item.size)})</small>
                   {item.error && (
                     <div style={{ color: "#fca5a5", fontSize: "0.75rem", marginTop: "0.15rem" }}>

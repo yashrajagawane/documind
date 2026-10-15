@@ -8,8 +8,13 @@ test("renders status label correctly", () => {
   expect(screen.getByText("ready")).toBeInTheDocument();
 });
 
-test("renders stage and progress bar when processing", () => {
+test("renders stage and progress bar with proper ARIA attributes when processing", () => {
   render(<StatusBadge status="processing" stage="extracting" progress={45} />);
   expect(screen.getByText("processing (extracting)")).toBeInTheDocument();
-  expect(screen.getByLabelText("Processing progress: 45%")).toBeInTheDocument();
+  const progressBar = screen.getByRole("progressbar");
+  expect(progressBar).toBeInTheDocument();
+  expect(progressBar).toHaveAttribute("aria-valuenow", "45");
+  expect(progressBar).toHaveAttribute("aria-valuemin", "0");
+  expect(progressBar).toHaveAttribute("aria-valuemax", "100");
+  expect(progressBar).toHaveAttribute("aria-label", "Processing progress for extracting: 45%");
 });

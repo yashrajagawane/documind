@@ -65,3 +65,14 @@ test("disables file selection when disabled prop is true", () => {
   const input = container.querySelector('input[type="file"]') as HTMLInputElement;
   expect(input).toBeDisabled();
 });
+
+test("associates file input with label and provides explicit id without aria-hidden", () => {
+  const { container } = render(<UploadZone onUpload={vi.fn()} />);
+
+  const input = container.querySelector("#file-upload-input") as HTMLInputElement;
+  expect(input).toBeInTheDocument();
+  expect(input).not.toHaveAttribute("aria-hidden");
+
+  const label = container.querySelector('label[for="file-upload-input"]');
+  expect(label).toBeInTheDocument();
+});

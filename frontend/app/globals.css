@@ -13,10 +13,10 @@
   --border-strong:    #2a2a3f;
   --border-accent:    #3d2d6e;
 
-  /* Text */
+  /* Text — elevated contrast for WCAG AA/AAA compliance */
   --text-primary:     #f0eeff;
-  --text-secondary:   #8b8aa8;
-  --text-muted:       #5a5a72;
+  --text-secondary:   #a3a2c2;
+  --text-muted:       #807f9c;
 
   /* Accent — deep violet */
   --accent:           #7c3aed;
@@ -60,9 +60,43 @@ body {
 button, input, textarea, select { font: inherit; }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid #a78bfa;
   outline-offset: 2px;
-  border-radius: 3px;
+  border-radius: 4px;
+}
+
+/* ── Accessibility Utilities ────────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.skip-link {
+  position: absolute;
+  top: -999px;
+  left: 1rem;
+  background: var(--accent);
+  color: #ffffff;
+  padding: 0.6rem 1.1rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  z-index: 10000;
+  text-decoration: none;
+  box-shadow: var(--shadow-lg);
+  transition: top 0.15s ease;
+}
+.skip-link:focus {
+  top: 1rem;
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
 }
 
 /* ── Scrollbar ─────────────────────────────────────────────────── */
@@ -905,6 +939,38 @@ button, input, textarea, select { font: inherit; }
   }
   .workspace-center {
     border-right: none;
+  }
+}
+
+/* Mobile phone: action button wrapping, upload queues, preview header stack */
+@media (max-width: 640px) {
+  .doc-item-row {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .document-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .upload-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+  .upload-item > div:last-child {
+    margin-left: 0 !important;
+    align-self: flex-end;
+  }
+  .preview-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+  .preview-tabs {
+    flex-wrap: wrap;
+  }
+  .export-actions {
+    gap: 0.35rem;
   }
 }
 
