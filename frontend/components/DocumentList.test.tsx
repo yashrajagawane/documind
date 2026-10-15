@@ -37,7 +37,14 @@ test("renders loading state", () => {
   expect(screen.getByText(/Loading documents/i)).toBeInTheDocument();
 });
 
-test("renders empty state", () => {
+test("renders engaging empty state with direct upload call-to-action", () => {
+  // Create dummy file input in DOM to test click dispatch
+  const fileInput = document.createElement("input");
+  fileInput.id = "file-upload-input";
+  fileInput.type = "file";
+  const clickSpy = vi.spyOn(fileInput, "click");
+  document.body.appendChild(fileInput);
+
   render(
     <DocumentList
       documents={[]}
@@ -46,8 +53,17 @@ test("renders empty state", () => {
       onDelete={vi.fn()}
     />
   );
-  // The sidebar-style empty state uses different copy
+
   expect(screen.getByText(/No documents yet/i)).toBeInTheDocument();
+  expect(screen.getByText(/Drop a file into the upload zone/i)).toBeInTheDocument();
+
+  const uploadBtn = screen.getByRole("button", { name: /Upload your first document/i });
+  expect(uploadBtn).toBeInTheDocument();
+
+  fireEvent.click(uploadBtn);
+  expect(clickSpy).toHaveBeenCalled();
+
+  document.body.removeChild(fileInput);
 });
 
 test("renders document items with clickable name buttons", () => {

@@ -24,8 +24,23 @@ export default function HomePage() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const getFriendlyAuthError = (rawMessage: string): string => {
+    const lower = rawMessage.toLowerCase();
+    if (lower.includes("already registered") || lower.includes("409") || lower.includes("conflict")) {
+      return "This email is already registered. Did you mean to sign in?";
+    }
+    if (lower.includes("validation") || lower.includes("422") || lower.includes("could not be validated")) {
+      return "Please ensure your email is valid and your password is at least 12 characters.";
+    }
+    if (lower.includes("invalid email or password") || lower.includes("401") || lower.includes("unauthorized")) {
+      return "Invalid email or password. Please verify your credentials and try again.";
+    }
+    return rawMessage;
+  };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -35,10 +50,17 @@ export default function HomePage() {
       if (mode === "login") await signIn(email, password);
       else await register(email, password);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Authentication failed.");
+      const rawMessage = requestError instanceof Error ? requestError.message : "Authentication failed.";
+      setError(getFriendlyAuthError(rawMessage));
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleToggleMode = () => {
+    setError(null);
+    setShowPassword(false);
+    setMode((prev) => (prev === "login" ? "register" : "login"));
   };
 
   if (isLoading) {
@@ -78,19 +100,72 @@ export default function HomePage() {
             onChange={(event) => setEmail(event.target.value)}
           />
           <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            minLength={12}
-            autoComplete={mode === "login" ? "current-password" : "new-password"}
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
+          <div className="password-input-wrapper">
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              minLength={12}
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              aria-describedby="password-hint"
+            />
+            <button
+              type="button"
+              className="password-toggle-btn"
+              onClick={() => setShowPassword((prev) => !prev)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              title={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
+            </button>
+          </div>
+
+          {/* Real-time length feedback */}
+          <div id="password-hint" className="password-hint" aria-live="polite">
+            {password.length >= 12 ? (
+              <span className="password-hint-valid">
+                <span aria-hidden="true">✓ </span>12+ characters entered
+              </span>
+            ) : (
+              <span className="password-hint-info">
+                {password.length > 0
+                  ? `${12 - password.length} more character${12 - password.length === 1 ? "" : "s"} required (12 minimum)`
+                  : "12 characters minimum required"}
+              </span>
+            )}
+          </div>
+
           {error && (
-            <p className="form-error" role="alert">
-              {error}
-            </p>
+            <div className="form-error-container" style={{ marginTop: "0.5rem" }}>
+              <p className="form-error" role="alert">
+                {error}
+              </p>
+              {error.includes("already registered") && mode === "register" && (
+                <button
+                  type="button"
+                  className="link-button"
+                  style={{ color: "var(--accent)", fontSize: "0.82rem", marginTop: "0.35rem", textDecoration: "underline" }}
+                  onClick={() => {
+                    setMode("login");
+                    setError(null);
+                  }}
+                >
+                  Switch to Sign In
+                </button>
+              )}
+            </div>
           )}
           <button className="button" type="submit" disabled={submitting}>
             {submitting ? "Working…" : mode === "login" ? "Sign in" : "Create account"}
@@ -100,7 +175,7 @@ export default function HomePage() {
           className="link-button"
           type="button"
           style={{ marginTop: "1rem" }}
-          onClick={() => setMode(mode === "login" ? "register" : "login")}
+          onClick={handleToggleMode}
         >
           {mode === "login" ? "Need an account? Register" : "Already have an account? Sign in"}
         </button>

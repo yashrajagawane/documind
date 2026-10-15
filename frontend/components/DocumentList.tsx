@@ -131,9 +131,26 @@ export function DocumentList({
 
   if (documents.length === 0) {
     return (
-      <p className="muted" style={{ padding: "0.75rem", fontSize: "0.82rem" }}>
-        No documents yet. Drop a file above.
-      </p>
+      <div className="doc-list-empty-state">
+        <div className="doc-list-empty-icon" aria-hidden="true">
+          📄
+        </div>
+        <p className="doc-list-empty-title">No documents yet</p>
+        <p className="doc-list-empty-desc">
+          Drop a file into the upload zone above or browse files to begin.
+        </p>
+        <button
+          type="button"
+          className="link-button doc-list-empty-btn"
+          onClick={() => {
+            const input = document.getElementById("file-upload-input");
+            input?.click();
+          }}
+          aria-label="Upload your first document"
+        >
+          + Upload your first document
+        </button>
+      </div>
     );
   }
 
