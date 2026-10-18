@@ -1,14 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { DocumentPreview as DocumentPreviewType } from "@/lib/types";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
+import { apiDownload } from "@/lib/api";
+
+export type PreviewTab = "markdown" | "tables" | "original";
 
 interface DocumentPreviewProps {
   preview: DocumentPreviewType;
   highlightSection?: string | null;
   /** The format currently being exported (e.g. "markdown"), or null when idle. */
   exporting?: string | null;
+  accessToken?: string | null;
+  rawBlobUrl?: string | null;
   onDownload: (format: string) => void;
 }
 
@@ -16,15 +21,73 @@ export function DocumentPreview({
   preview,
   highlightSection = null,
   exporting = null,
+  accessToken = null,
+  rawBlobUrl = null,
   onDownload,
 }: Readonly<DocumentPreviewProps>) {
-  const [activeTab, setActiveTab] = useState<"markdown" | "tables">("markdown");
+  const [activeTab, setActiveTab] = useState<PreviewTab>("markdown");
   const [viewMode, setViewMode] = useState<"rendered" | "raw">("rendered");
   const [copiedTableIndex, setCopiedTableIndex] = useState<number | null>(null);
+
+  // Original file state
+  const [fetchedBlobUrl, setFetchedBlobUrl] = useState<string | null>(null);
+  const [loadingRaw, setLoadingRaw] = useState(false);
+  const [rawError, setRawError] = useState<string | null>(null);
+  const [prevDocId, setPrevDocId] = useState(preview.id);
+
+  // Synchronize state during render when switching documents
+  if (preview.id !== prevDocId) {
+    setPrevDocId(preview.id);
+    setActiveTab("markdown");
+    setLoadingRaw(false);
+    setRawError(null);
+  }
+
+  const effectiveRawUrl = rawBlobUrl || fetchedBlobUrl;
 
   const tables = preview.tables ?? [];
   const wordCount = preview.metadata?.word_count ?? 0;
   const charCount = preview.metadata?.character_count ?? 0;
+
+  const ext = preview.original_name.split(".").pop()?.toLowerCase() ?? "";
+  const isPdf = ext === "pdf";
+  const isImage = ["png", "jpg", "jpeg", "webp", "gif"].includes(ext);
+  const isOffice = ["docx", "pptx", "xlsx"].includes(ext);
+
+  // Clean up object URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (fetchedBlobUrl) {
+        URL.revokeObjectURL(fetchedBlobUrl);
+      }
+    };
+  }, [fetchedBlobUrl]);
+
+  const loadOriginalFile = useCallback(async () => {
+    if (effectiveRawUrl || loadingRaw) return;
+    if (!accessToken) {
+      setRawError("Authentication token is required to load the original file.");
+      return;
+    }
+    setLoadingRaw(true);
+    setRawError(null);
+    try {
+      const blob = await apiDownload(`/documents/${preview.id}/raw`, accessToken);
+      const url = URL.createObjectURL(blob);
+      setFetchedBlobUrl(url);
+    } catch (err) {
+      setRawError(err instanceof Error ? err.message : "Failed to load original document.");
+    } finally {
+      setLoadingRaw(false);
+    }
+  }, [effectiveRawUrl, loadingRaw, accessToken, preview.id]);
+
+  const handleSelectTab = (tab: PreviewTab) => {
+    setActiveTab(tab);
+    if (tab === "original" && !effectiveRawUrl && !loadingRaw) {
+      void loadOriginalFile();
+    }
+  };
 
   const handleCopyTable = (index: number, markdown: string) => {
     void navigator.clipboard.writeText(markdown);
@@ -32,18 +95,35 @@ export function DocumentPreview({
     setTimeout(() => setCopiedTableIndex(null), 2000);
   };
 
+  const availableTabs: PreviewTab[] = [
+    "markdown",
+    ...(tables.length > 0 ? (["tables"] as const) : []),
+    "original",
+  ];
+
   const handleTabKeyDown = (
     event: React.KeyboardEvent<HTMLButtonElement>,
-    currentTab: "markdown" | "tables"
+    currentTab: PreviewTab
   ) => {
-    if (tables.length === 0) return;
-    if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+    if (availableTabs.length <= 1) return;
+    const currentIndex = availableTabs.indexOf(currentTab);
+    if (currentIndex === -1) return;
+
+    if (event.key === "ArrowRight") {
       event.preventDefault();
-      const nextTab = currentTab === "markdown" ? "tables" : "markdown";
-      setActiveTab(nextTab);
-      const nextId = nextTab === "markdown" ? "tab-markdown" : "tab-tables";
+      const nextIndex = (currentIndex + 1) % availableTabs.length;
+      const nextTab = availableTabs[nextIndex];
+      handleSelectTab(nextTab);
       setTimeout(() => {
-        document.getElementById(nextId)?.focus();
+        document.getElementById(`tab-${nextTab}`)?.focus();
+      }, 0);
+    } else if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      const prevIndex = (currentIndex - 1 + availableTabs.length) % availableTabs.length;
+      const prevTab = availableTabs[prevIndex];
+      handleSelectTab(prevTab);
+      setTimeout(() => {
+        document.getElementById(`tab-${prevTab}`)?.focus();
       }, 0);
     }
   };
@@ -68,7 +148,7 @@ export function DocumentPreview({
             aria-selected={activeTab === "markdown"}
             aria-controls="panel-markdown"
             tabIndex={activeTab === "markdown" ? 0 : -1}
-            onClick={() => setActiveTab("markdown")}
+            onClick={() => handleSelectTab("markdown")}
             onKeyDown={(e) => handleTabKeyDown(e, "markdown")}
           >
             Markdown Content
@@ -82,12 +162,25 @@ export function DocumentPreview({
               aria-selected={activeTab === "tables"}
               aria-controls="panel-tables"
               tabIndex={activeTab === "tables" ? 0 : -1}
-              onClick={() => setActiveTab("tables")}
+              onClick={() => handleSelectTab("tables")}
               onKeyDown={(e) => handleTabKeyDown(e, "tables")}
             >
               Extracted Tables ({tables.length})
             </button>
           )}
+          <button
+            id="tab-original"
+            className={`tab-button ${activeTab === "original" ? "active" : ""}`}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "original"}
+            aria-controls="panel-original"
+            tabIndex={activeTab === "original" ? 0 : -1}
+            onClick={() => handleSelectTab("original")}
+            onKeyDown={(e) => handleTabKeyDown(e, "original")}
+          >
+            Original Document
+          </button>
         </div>
 
         {activeTab === "markdown" && (
@@ -114,7 +207,7 @@ export function DocumentPreview({
         )}
       </div>
 
-      {activeTab === "markdown" ? (
+      {activeTab === "markdown" && (
         <div
           role="tabpanel"
           id="panel-markdown"
@@ -134,7 +227,9 @@ export function DocumentPreview({
             </pre>
           )}
         </div>
-      ) : (
+      )}
+
+      {activeTab === "tables" && (
         <div
           role="tabpanel"
           id="panel-tables"
@@ -189,11 +284,123 @@ export function DocumentPreview({
         </div>
       )}
 
+      {activeTab === "original" && (
+        <div
+          role="tabpanel"
+          id="panel-original"
+          aria-labelledby="tab-original"
+          tabIndex={0}
+          className="original-viewer-container"
+        >
+          <div className="original-viewer-toolbar">
+            <span style={{ fontSize: "0.85rem", fontWeight: 600 }}>
+              {preview.original_name}
+            </span>
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              {effectiveRawUrl && (
+                <a
+                  href={effectiveRawUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="link-button"
+                  style={{ fontSize: "0.8rem", textDecoration: "none" }}
+                  aria-label="Open original file in new browser tab"
+                >
+                  Open in new tab ↗
+                </a>
+              )}
+              <button
+                type="button"
+                className="copy-button"
+                onClick={() => onDownload("original")}
+                disabled={exporting !== null}
+                aria-label="Download original file"
+              >
+                Download Original
+              </button>
+            </div>
+          </div>
+
+          {loadingRaw && (
+            <div style={{ padding: "3rem", textAlign: "center", color: "var(--text-muted)" }}>
+              Loading original document…
+            </div>
+          )}
+
+          {rawError && (
+            <div className="workspace-alert" role="alert" style={{ margin: "1rem 0" }}>
+              <span>⚠</span>
+              <span>{rawError}</span>
+            </div>
+          )}
+
+          {!loadingRaw && !rawError && (
+            <>
+              {isPdf && effectiveRawUrl && (
+                <iframe
+                  src={effectiveRawUrl}
+                  title={`Original PDF document: ${preview.original_name}`}
+                  className="original-file-frame"
+                />
+              )}
+
+              {isImage && effectiveRawUrl && (
+                <div style={{ display: "flex", justifyContent: "center", padding: "1rem" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={effectiveRawUrl}
+                    alt={`Original upload: ${preview.original_name}`}
+                    style={{
+                      maxWidth: "100%",
+                      maxHeight: "580px",
+                      borderRadius: "0.375rem",
+                      border: "1px solid var(--border)",
+                      objectFit: "contain",
+                    }}
+                  />
+                </div>
+              )}
+
+              {isOffice && (
+                <div className="original-fallback-card">
+                  <div style={{ fontSize: "2.5rem" }}>📄</div>
+                  <div>
+                    <p style={{ fontWeight: 600, marginBottom: "0.25rem" }}>
+                      Office Document Preview
+                    </p>
+                    <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", maxWidth: "28rem" }}>
+                      Binary Office documents ({ext.toUpperCase()}) cannot be rendered directly inside the browser.
+                      You can download the original file or inspect the extracted markdown and tables.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() => onDownload("original")}
+                    style={{ marginTop: "0.5rem" }}
+                  >
+                    Download {preview.original_name}
+                  </button>
+                </div>
+              )}
+
+              {!isPdf && !isImage && !isOffice && effectiveRawUrl && (
+                <iframe
+                  src={effectiveRawUrl}
+                  title={`Original document: ${preview.original_name}`}
+                  className="original-file-frame"
+                />
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       <div className="export-actions" role="group" aria-label="Export document formats" style={{ marginTop: "1rem" }}>
         <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
           {exporting ? "Exporting…" : "Export:"}
         </span>
-        {(["markdown", "json", "html", "txt"] as const).map((fmt) => (
+        {(["markdown", "json", "html", "txt", "original"] as const).map((fmt) => (
           <button
             key={fmt}
             className="link-button"

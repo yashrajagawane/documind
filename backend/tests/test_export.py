@@ -47,3 +47,16 @@ def test_export_projections_content_and_headers() -> None:
     html_body = f'<!doctype html><meta charset="utf-8"><pre>{html.escape(markdown)}</pre>'
     assert "&lt;p&gt;Safe &amp; sound&lt;/p&gt;" in html_body
     assert "<script>" not in html_body
+
+
+def test_export_original_mimetype_and_disposition() -> None:
+    import mimetypes
+
+    filename_pdf = "quarterly_presentation.pdf"
+    guessed_pdf, _ = mimetypes.guess_type(filename_pdf)
+    assert guessed_pdf == "application/pdf"
+
+    filename_txt = "notes.txt"
+    guessed_txt, _ = mimetypes.guess_type(filename_txt)
+    assert guessed_txt == "text/plain"
+

@@ -1,5 +1,7 @@
+import asyncio
 import html
 import json
+import mimetypes
 from pathlib import Path
 from uuid import UUID
 
@@ -183,6 +185,31 @@ async def index_document(
     return {"indexed_chunks": count}
 
 
+@router.get("/{document_id}/raw")
+async def get_raw_document(
+    document_id: UUID,
+    user_id: UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db_session),
+) -> Response:
+    document = await get_owned_document(document_id, user_id, db)
+    guessed_type, _ = mimetypes.guess_type(document.original_name)
+    media_type = guessed_type or "application/octet-stream"
+    try:
+        async with storage.materialize(document.storage_key) as path:
+            body = await asyncio.to_thread(path.read_bytes)
+    except StorageError as error:
+        raise HTTPException(status_code=404, detail="Original document file not found.") from error
+
+    return Response(
+        content=body,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'inline; filename="{document.original_name}"',
+            "Content-Type": media_type,
+        },
+    )
+
+
 @router.get("/{document_id}/export")
 async def export_document(
     document_id: UUID,
@@ -191,11 +218,25 @@ async def export_document(
     db: AsyncSession = Depends(get_db_session),
 ) -> Response:
     document = await get_owned_document(document_id, user_id, db)
+    export_format = format.lower()
+    if export_format in {"original", "raw"}:
+        guessed_type, _ = mimetypes.guess_type(document.original_name)
+        media_type = guessed_type or "application/octet-stream"
+        try:
+            async with storage.materialize(document.storage_key) as path:
+                body = await asyncio.to_thread(path.read_bytes)
+        except StorageError as error:
+            raise HTTPException(status_code=404, detail="Original document file not found.") from error
+        return Response(
+            content=body,
+            media_type=media_type,
+            headers={"Content-Disposition": f'attachment; filename="{document.original_name}"'},
+        )
+
     if document.status != "ready" or not document.structured_json:
         raise HTTPException(status_code=409, detail="Document export is not ready.")
     artifact = document.structured_json
     markdown = str(artifact.get("markdown", ""))
-    export_format = format.lower()
     if export_format == "markdown":
         body, media_type, extension = markdown, "text/markdown", "md"
     elif export_format == "txt":

@@ -124,4 +124,56 @@ describe("DocumentPreview Accessibility and Interactions", () => {
     const jsonExport = screen.getByRole("button", { name: "Export as json" });
     expect(jsonExport).toBeDisabled();
   });
+
+  it("renders original document tab and switches to original panel", () => {
+    const onDownload = vi.fn();
+    render(
+      <DocumentPreview
+        preview={mockPreview}
+        rawBlobUrl="blob:http://localhost:3000/mock-pdf"
+        onDownload={onDownload}
+      />
+    );
+
+    const originalTab = screen.getByRole("tab", { name: "Original Document" });
+    expect(originalTab).toBeInTheDocument();
+    expect(originalTab).toHaveAttribute("id", "tab-original");
+    expect(originalTab).toHaveAttribute("aria-controls", "panel-original");
+
+    fireEvent.click(originalTab);
+    expect(originalTab).toHaveAttribute("aria-selected", "true");
+
+    const originalPanel = screen.getByRole("tabpanel");
+    expect(originalPanel).toHaveAttribute("id", "panel-original");
+
+    // Iframe rendered for PDF
+    const iframe = screen.getByTitle(/Original PDF document: Annual_Report_2026\.pdf/i);
+    expect(iframe).toBeInTheDocument();
+    expect(iframe).toHaveAttribute("src", "blob:http://localhost:3000/mock-pdf");
+
+    // Download original button inside toolbar
+    const downloadOriginalBtn = screen.getByRole("button", { name: "Download original file" });
+    fireEvent.click(downloadOriginalBtn);
+    expect(onDownload).toHaveBeenCalledWith("original");
+  });
+
+  it("renders office file fallback notice for .docx files", () => {
+    const officePreview: DocumentPreviewType = {
+      ...mockPreview,
+      original_name: "Proposal.docx",
+    };
+    render(
+      <DocumentPreview
+        preview={officePreview}
+        rawBlobUrl="blob:http://localhost:3000/mock-docx"
+        onDownload={vi.fn()}
+      />
+    );
+
+    const originalTab = screen.getByRole("tab", { name: "Original Document" });
+    fireEvent.click(originalTab);
+
+    expect(screen.getByText("Office Document Preview")).toBeInTheDocument();
+    expect(screen.getByText(/Binary Office documents \(DOCX\) cannot be rendered directly/i)).toBeInTheDocument();
+  });
 });

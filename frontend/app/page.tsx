@@ -8,6 +8,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { ChatPanel } from "@/components/ChatPanel";
 import { DocumentList } from "@/components/DocumentList";
 import { DocumentPreview } from "@/components/DocumentPreview";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { UploadZone } from "@/components/UploadZone";
 import { apiDownload, apiFetch, apiStreamSSE, apiUploadWithProgress } from "@/lib/api";
 import type { UploadProgress } from "@/lib/api";
@@ -534,7 +535,10 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `${preview.original_name}.${format}`;
+      anchor.download =
+        format === "original"
+          ? preview.original_name
+          : `${preview.original_name}.${format}`;
       anchor.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -565,6 +569,7 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
           {/* Brand header */}
           <div className="sidebar-header">
             <p className="sidebar-brand">DocuMind</p>
+            <ThemeToggle />
           </div>
 
           {/* Upload zone */}
@@ -642,6 +647,7 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
                   preview={preview}
                   highlightSection={highlightSection}
                   exporting={exportingFormat}
+                  accessToken={accessToken}
                   onDownload={(format) => void handleDownload(format)}
                 />
               </div>
