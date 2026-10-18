@@ -1,0 +1,190 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" width="960" height="440" role="img" aria-label="DocuMind System Architecture: Next.js Frontend, FastAPI Backend, PostgreSQL Canonical Store, Private Storage, Redis/Celery Processing, Docling Parser, Qdrant Vector DB, and Google Gemini">
+  <title>DocuMind - High-Level System Architecture</title>
+  <defs>
+    <linearGradient id="archBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="100%" stop-color="#0d1322"/>
+    </linearGradient>
+    <linearGradient id="tierGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#111726"/>
+      <stop offset="100%" stop-color="#0c111d"/>
+    </linearGradient>
+    <linearGradient id="accentCard" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#151e33"/>
+      <stop offset="100%" stop-color="#0f1626"/>
+    </linearGradient>
+    <filter id="boxShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="960" height="440" rx="12" fill="url(#archBg)" stroke="#1e293b" stroke-width="1"/>
+
+  <!-- Subtle Structural Grid -->
+  <g opacity="0.03" stroke="#94a3b8" stroke-width="1">
+    <line x1="0" y1="110" x2="960" y2="110"/>
+    <line x1="0" y1="220" x2="960" y2="220"/>
+    <line x1="0" y1="330" x2="960" y2="330"/>
+    <line x1="240" y1="0" x2="240" y2="440"/>
+    <line x1="480" y1="0" x2="480" y2="440"/>
+    <line x1="720" y1="0" x2="720" y2="440"/>
+  </g>
+
+  <!-- Flow Connectors -->
+  <!-- Frontend -> Backend -->
+  <path d="M 215 150 L 265 150" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <polygon points="265,147 273,150 265,153" fill="#3b82f6"/>
+  <text x="240" y="142" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8" fill="#60a5fa">HTTPS / JWT</text>
+
+  <!-- Backend -> PostgreSQL -->
+  <path d="M 375 270 L 375 310" fill="none" stroke="#60a5fa" stroke-width="1.5"/>
+  <polygon points="372,310 375,318 378,310" fill="#60a5fa"/>
+
+  <!-- Backend -> Private Storage -->
+  <path d="M 435 270 L 435 310" fill="none" stroke="#38bdf8" stroke-width="1.5"/>
+  <polygon points="432,310 435,318 438,310" fill="#38bdf8"/>
+
+  <!-- Backend -> Redis -->
+  <path d="M 485 150 L 535 150" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <polygon points="535,147 543,150 535,153" fill="#ef4444"/>
+  <text x="510" y="142" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8" fill="#f87171">Queue Task</text>
+
+  <!-- Redis -> Celery Worker -->
+  <path d="M 645 150 L 685 150" fill="none" stroke="#ef4444" stroke-width="1.5"/>
+  <polygon points="685,147 693,150 685,153" fill="#ef4444"/>
+
+  <!-- Backend -> Vector / AI Flow -->
+  <path d="M 485 210 L 685 270" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <polygon points="683,266 693,272 684,274" fill="#a78bfa"/>
+
+  <!-- Celery Worker -> Docling -->
+  <path d="M 795 150 L 835 150" fill="none" stroke="#818cf8" stroke-width="1.5"/>
+  <polygon points="835,147 843,150 835,153" fill="#818cf8"/>
+
+  <!-- ================= TIER 1: CLIENT ================= -->
+  <rect x="25" y="45" width="190" height="225" rx="8" fill="url(#tierGrad)" stroke="#1e3a5f" stroke-width="1" filter="url(#boxShadow)"/>
+  <rect x="37" y="57" width="70" height="18" rx="3" fill="#1e293b"/>
+  <text x="72" y="70" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" font-weight="700" fill="#60a5fa" letter-spacing="1">CLIENT TIER</text>
+
+  <rect x="37" y="87" width="166" height="75" rx="6" fill="url(#accentCard)" stroke="#2563eb" stroke-width="0.75"/>
+  <text x="50" y="108" font-family="-apple-system,system-ui,sans-serif" font-size="12" font-weight="700" fill="#f1f5f9">Next.js 16 Web App</text>
+  <text x="50" y="125" font-family="-apple-system,system-ui,sans-serif" font-size="10" fill="#94a3b8">React 19 &amp; TanStack Query</text>
+  <text x="50" y="140" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#64748b">In-Memory JWT &amp; Cookie Refresh</text>
+
+  <rect x="37" y="172" width="166" height="85" rx="6" fill="#0c1322" stroke="#1e293b" stroke-width="0.75"/>
+  <text x="50" y="193" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="600" fill="#cbd5e1">Workspace UI</text>
+  <text x="50" y="210" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#94a3b8">• Upload Zone &amp; Progress</text>
+  <text x="50" y="225" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#94a3b8">• Structural Document Preview</text>
+  <text x="50" y="240" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#94a3b8">• Grounded Chat with Citations</text>
+
+  <!-- ================= TIER 2: BACKEND GATEWAY ================= -->
+  <rect x="275" y="45" width="210" height="225" rx="8" fill="url(#tierGrad)" stroke="#1d4ed8" stroke-width="1.2" filter="url(#boxShadow)"/>
+  <rect x="287" y="57" width="115" height="18" rx="3" fill="#1e293b"/>
+  <text x="344" y="70" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" font-weight="700" fill="#38bdf8" letter-spacing="1">FASTAPI GATEWAY</text>
+
+  <rect x="287" y="87" width="186" height="75" rx="6" fill="url(#accentCard)" stroke="#38bdf8" stroke-width="0.75"/>
+  <text x="300" y="108" font-family="-apple-system,system-ui,sans-serif" font-size="12" font-weight="700" fill="#f1f5f9">Application Server</text>
+  <text x="300" y="125" font-family="-apple-system,system-ui,sans-serif" font-size="10" fill="#94a3b8">FastAPI + Pydantic v2</text>
+  <text x="300" y="140" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#64748b">Port :8000 / Uvicorn</text>
+
+  <rect x="287" y="172" width="186" height="85" rx="6" fill="#0c1322" stroke="#1e293b" stroke-width="0.75"/>
+  <text x="300" y="193" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="600" fill="#cbd5e1">Security &amp; Domain Layer</text>
+  <text x="300" y="210" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#94a3b8">• JWT Verification &amp; Tenant Filter</text>
+  <text x="300" y="225" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#94a3b8">• Fail-Closed Lua Rate Limiter</text>
+  <text x="300" y="240" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#94a3b8">• Isolated Service Adapters</text>
+
+  <!-- ================= TIER 3: PERSISTENCE ================= -->
+  <rect x="275" y="318" width="210" height="95" rx="8" fill="url(#tierGrad)" stroke="#1e293b" stroke-width="1" filter="url(#boxShadow)"/>
+  <g transform="translate(287, 328)">
+    <!-- PostgreSQL Card -->
+    <rect width="88" height="75" rx="5" fill="#0c1424" stroke="#2563eb" stroke-width="0.75"/>
+    <text x="44" y="20" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="700" fill="#93c5fd">PostgreSQL 16</text>
+    <text x="44" y="36" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8" fill="#64748b">Canonical state</text>
+    <text x="44" y="49" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8" fill="#94a3b8">Users &amp; Sessions</text>
+    <text x="44" y="61" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8" fill="#94a3b8">Jobs &amp; Documents</text>
+
+    <!-- Storage Card -->
+    <rect x="98" width="88" height="75" rx="5" fill="#081d2e" stroke="#0284c7" stroke-width="0.75"/>
+    <text x="142" y="20" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="700" fill="#7dd3fc">Private Storage</text>
+    <text x="142" y="36" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8" fill="#64748b">Local / S3 Adapter</text>
+    <text x="142" y="49" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8" fill="#94a3b8">UUID Keys</text>
+    <text x="142" y="61" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8" fill="#94a3b8">No Direct URL</text>
+  </g>
+
+  <!-- ================= TIER 4: ASYNC QUEUE & PROCESSING ================= -->
+  <rect x="545" y="45" width="390" height="155" rx="8" fill="url(#tierGrad)" stroke="#4338ca" stroke-width="1" filter="url(#boxShadow)"/>
+  <rect x="557" y="57" width="135" height="18" rx="3" fill="#1e1b4b"/>
+  <text x="624" y="70" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" font-weight="700" fill="#a5b4fc" letter-spacing="1">ASYNC PROCESSING TIER</text>
+
+  <!-- Redis -->
+  <g transform="translate(557, 85)">
+    <rect width="88" height="95" rx="5" fill="#1f1118" stroke="#dc2626" stroke-width="0.75"/>
+    <text x="44" y="22" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="11" font-weight="700" fill="#fca5a5">Redis 7.4</text>
+    <text x="44" y="40" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8" fill="#94a3b8">Celery Broker</text>
+    <text x="44" y="54" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8" fill="#94a3b8">Rate Limit DB</text>
+    <rect x="8" y="68" width="72" height="18" rx="3" fill="#3b1115"/>
+    <text x="44" y="80" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="7.5" fill="#f87171">Port :6379</text>
+  </g>
+
+  <!-- Celery Worker + Beat -->
+  <g transform="translate(695, 85)">
+    <rect width="100" height="95" rx="5" fill="#151b33" stroke="#4f46e5" stroke-width="0.75"/>
+    <text x="50" y="22" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="11" font-weight="700" fill="#c7d2fe">Celery 5.6</text>
+    <text x="50" y="40" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8" fill="#94a3b8">Worker &amp; Beat</text>
+    <text x="50" y="54" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8" fill="#94a3b8">Fenced lease token</text>
+    <rect x="8" y="68" width="84" height="18" rx="3" fill="#1e1e47"/>
+    <text x="50" y="80" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="7.5" fill="#a5b4fc">Exponential Retry</text>
+  </g>
+
+  <!-- Docling Parser -->
+  <g transform="translate(845, 85)">
+    <rect width="78" height="95" rx="5" fill="#1a1236" stroke="#8b5cf6" stroke-width="0.75"/>
+    <text x="39" y="22" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="11" font-weight="700" fill="#d8b4fe">Docling</text>
+    <text x="39" y="40" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8" fill="#94a3b8">IBM Layout AI</text>
+    <text x="39" y="54" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8" fill="#94a3b8">Table extract</text>
+    <rect x="6" y="68" width="66" height="18" rx="3" fill="#2d1c52"/>
+    <text x="39" y="80" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="7.5" fill="#c084fc">Markdown Out</text>
+  </g>
+
+  <!-- ================= TIER 5: RETRIEVAL & AI INFERENCE ================= -->
+  <rect x="545" y="225" width="390" height="188" rx="8" fill="url(#tierGrad)" stroke="#581c87" stroke-width="1" filter="url(#boxShadow)"/>
+  <rect x="557" y="237" width="135" height="18" rx="3" fill="#2e1065"/>
+  <text x="624" y="250" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" font-weight="700" fill="#d8b4fe" letter-spacing="1">VECTOR &amp; AI INFERENCE</text>
+
+  <!-- Sentence Transformers Embeddings -->
+  <g transform="translate(557, 265)">
+    <rect width="115" height="135" rx="6" fill="#08283b" stroke="#0284c7" stroke-width="0.75"/>
+    <text x="57" y="24" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="11" font-weight="700" fill="#7dd3fc">Sentence Tr.</text>
+    <text x="57" y="42" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8.5" fill="#38bdf8">all-MiniLM-L6-v2</text>
+    <text x="57" y="58" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8" fill="#94a3b8">Local inference</text>
+    <text x="57" y="72" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8" fill="#94a3b8">384 dimensions</text>
+    <rect x="10" y="88" width="95" height="34" rx="4" fill="#051c2b"/>
+    <text x="57" y="102" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="7.5" fill="#67e8f9">Section-aware chunk</text>
+    <text x="57" y="114" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="7.5" fill="#67e8f9">Deterministic IDs</text>
+  </g>
+
+  <!-- Qdrant Vector DB -->
+  <g transform="translate(685, 265)">
+    <rect width="115" height="135" rx="6" fill="#1e1030" stroke="#7c3aed" stroke-width="0.75"/>
+    <text x="57" y="24" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="11" font-weight="700" fill="#c4b5fd">Qdrant 1.15</text>
+    <text x="57" y="42" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8.5" fill="#a78bfa">documind_chunks</text>
+    <text x="57" y="58" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8" fill="#94a3b8">Cosine similarity</text>
+    <text x="57" y="72" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8" fill="#94a3b8">score &gt;= 0.35 threshold</text>
+    <rect x="10" y="88" width="95" height="34" rx="4" fill="#140924"/>
+    <text x="57" y="102" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="7.5" fill="#e9d5ff">Filter: user_id</text>
+    <text x="57" y="114" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="7.5" fill="#e9d5ff">Filter: document_id</text>
+  </g>
+
+  <!-- Google Gemini -->
+  <g transform="translate(813, 265)">
+    <rect width="110" height="135" rx="6" fill="#042721" stroke="#059669" stroke-width="0.75"/>
+    <text x="55" y="24" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="11" font-weight="700" fill="#6ee7b7">Gemini 3.8</text>
+    <text x="55" y="42" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8.5" fill="#34d399">Flash model</text>
+    <text x="55" y="58" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8" fill="#94a3b8">Grounded response</text>
+    <text x="55" y="72" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8" fill="#94a3b8">Refusal on no-evidence</text>
+    <rect x="8" y="88" width="94" height="34" rx="4" fill="#031b17"/>
+    <text x="55" y="102" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="7.5" fill="#a7f3d0">Server citations</text>
+    <text x="55" y="114" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="7.5" fill="#a7f3d0">Delimited evidence</text>
+  </g>
+</svg>

@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 210" width="960" height="210" role="img" aria-label="DocuMind Citation Integrity: Server-Verified Citations from Qdrant Metadata vs Hallucinated LLM Citations">
+  <title>DocuMind - Server-Verified Citations Architecture</title>
+  <defs>
+    <linearGradient id="citeBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="100%" stop-color="#0d1322"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#141a29"/>
+      <stop offset="100%" stop-color="#0f1522"/>
+    </linearGradient>
+    <filter id="citeShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="960" height="210" rx="12" fill="url(#citeBg)" stroke="#1e293b" stroke-width="1"/>
+
+  <!-- Panel 1: Traditional / Naive Approach (Flawed) -->
+  <g transform="translate(30, 24)">
+    <rect width="420" height="162" rx="8" fill="url(#cardGrad)" stroke="#7f1d1d" stroke-width="1" filter="url(#citeShadow)"/>
+    <rect x="16" y="14" width="112" height="20" rx="4" fill="#450a0a"/>
+    <text x="72" y="28" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" font-weight="700" fill="#f87171" letter-spacing="1">UNRELIABLE RAG</text>
+
+    <text x="16" y="60" font-family="-apple-system,system-ui,sans-serif" font-size="13" font-weight="700" fill="#fca5a5">Model-Generated Citations</text>
+    <text x="16" y="78" font-family="-apple-system,system-ui,sans-serif" font-size="10.5" fill="#94a3b8">LLM is prompted to output its own citations in text.</text>
+
+    <!-- Flaw Boxes -->
+    <rect x="16" y="96" width="388" height="24" rx="4" fill="#2a1215" stroke="#991b1b" stroke-width="0.5"/>
+    <text x="26" y="112" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#fca5a5">⚠️  Hallucinated page numbers, fabricated URLs, and phantom sections</text>
+
+    <rect x="16" y="126" width="388" height="24" rx="4" fill="#2a1215" stroke="#991b1b" stroke-width="0.5"/>
+    <text x="26" y="142" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#fca5a5">⚠️  No server guarantee that referenced text actually exists in vector store</text>
+  </g>
+
+  <!-- VS Divider -->
+  <circle cx="480" cy="105" r="16" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="480" y="109" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="700" fill="#94a3b8">VS</text>
+
+  <!-- Panel 2: DocuMind Approach (Verified) -->
+  <g transform="translate(510, 24)">
+    <rect width="420" height="162" rx="8" fill="url(#cardGrad)" stroke="#065f46" stroke-width="1" filter="url(#citeShadow)"/>
+    <rect x="16" y="14" width="132" height="20" rx="4" fill="#064e3b"/>
+    <text x="82" y="28" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" font-weight="700" fill="#34d399" letter-spacing="1">DOCUMIND GUARANTEE</text>
+
+    <text x="16" y="60" font-family="-apple-system,system-ui,sans-serif" font-size="13" font-weight="700" fill="#6ee7b7">Server-Constructed Citations</text>
+    <text x="16" y="78" font-family="-apple-system,system-ui,sans-serif" font-size="10.5" fill="#94a3b8">FastAPI backend derives citations from Qdrant vector metadata.</text>
+
+    <!-- Guarantee Boxes -->
+    <rect x="16" y="96" width="388" height="24" rx="4" fill="#04291f" stroke="#047857" stroke-width="0.5"/>
+    <text x="26" y="112" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#a7f3d0">✓  Chunk ID, section, snippet, and score mapped directly from vector points</text>
+
+    <rect x="16" y="126" width="388" height="24" rx="4" fill="#04291f" stroke="#047857" stroke-width="0.5"/>
+    <text x="26" y="142" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#a7f3d0">✓  LLM generates answer text only; citations cannot be invented or forged</text>
+  </g>
+</svg>

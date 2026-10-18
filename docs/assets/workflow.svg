@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 210" width="960" height="210" role="img" aria-label="DocuMind End-to-End Workflow: Upload Document, Parse Structure, Create Embeddings, Retrieve Relevant Evidence, Answer with Verified Citations">
+  <title>DocuMind - End-to-End Processing Workflow</title>
+  <defs>
+    <linearGradient id="wfBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="100%" stop-color="#0d1322"/>
+    </linearGradient>
+    <linearGradient id="cardBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#131929"/>
+      <stop offset="100%" stop-color="#0e1422"/>
+    </linearGradient>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <!-- Canvas Background -->
+  <rect width="960" height="210" rx="12" fill="url(#wfBg)" stroke="#1e293b" stroke-width="1"/>
+
+  <!-- Subtle Blueprint Grid -->
+  <g opacity="0.03" stroke="#94a3b8" stroke-width="1">
+    <line x1="0" y1="52" x2="960" y2="52"/>
+    <line x1="0" y1="105" x2="960" y2="105"/>
+    <line x1="0" y1="158" x2="960" y2="158"/>
+    <line x1="192" y1="0" x2="192" y2="210"/>
+    <line x1="384" y1="0" x2="384" y2="210"/>
+    <line x1="576" y1="0" x2="576" y2="210"/>
+    <line x1="768" y1="0" x2="768" y2="210"/>
+  </g>
+
+  <!-- Connecting Lines with Directional Arrows -->
+  <g stroke-width="1.5" stroke-dasharray="4 3" opacity="0.6">
+    <line x1="184" y1="105" x2="214" y2="105" stroke="#3b82f6"/>
+    <polygon points="214,101 222,105 214,109" fill="#3b82f6"/>
+
+    <line x1="374" y1="105" x2="404" y2="105" stroke="#818cf8"/>
+    <polygon points="404,101 412,105 404,109" fill="#818cf8"/>
+
+    <line x1="564" y1="105" x2="594" y2="105" stroke="#38bdf8"/>
+    <polygon points="594,101 602,105 594,109" fill="#38bdf8"/>
+
+    <line x1="754" y1="105" x2="784" y2="105" stroke="#a78bfa"/>
+    <polygon points="784,101 792,105 784,109" fill="#a78bfa"/>
+  </g>
+
+  <!-- Step 1: Upload Document -->
+  <g transform="translate(24, 25)">
+    <rect width="160" height="160" rx="10" fill="url(#cardBg)" stroke="#1e3a5f" stroke-width="1" filter="url(#softGlow)"/>
+    <rect x="14" y="14" width="28" height="20" rx="4" fill="#1e293b" stroke="#2563eb" stroke-width="0.75"/>
+    <text x="28" y="28" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="700" fill="#60a5fa">01</text>
+    <text x="50" y="28" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="600" fill="#94a3b8" letter-spacing="1">INGEST</text>
+
+    <text x="14" y="60" font-family="-apple-system,system-ui,sans-serif" font-size="13" font-weight="700" fill="#f1f5f9">Upload File</text>
+    <text x="14" y="78" font-family="-apple-system,system-ui,sans-serif" font-size="10.5" fill="#94a3b8">PDF, DOCX, XLSX, TXT</text>
+    <text x="14" y="93" font-family="-apple-system,system-ui,sans-serif" font-size="9.5" fill="#64748b">Max 25 MB stream</text>
+
+    <rect x="12" y="116" width="136" height="30" rx="5" fill="#0b1329" stroke="#1d4ed8" stroke-width="0.5"/>
+    <text x="80" y="129" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#93c5fd">SHA-256 deduplication</text>
+    <text x="80" y="140" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8.5" fill="#60a5fa">Magic-byte validation</text>
+  </g>
+
+  <!-- Step 2: Parse Structure -->
+  <g transform="translate(214, 25)">
+    <rect width="160" height="160" rx="10" fill="url(#cardBg)" stroke="#312e81" stroke-width="1" filter="url(#softGlow)"/>
+    <rect x="14" y="14" width="28" height="20" rx="4" fill="#1e1b4b" stroke="#4f46e5" stroke-width="0.75"/>
+    <text x="28" y="28" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="700" fill="#a5b4fc">02</text>
+    <text x="50" y="28" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="600" fill="#94a3b8" letter-spacing="1">STRUCTURE</text>
+
+    <text x="14" y="60" font-family="-apple-system,system-ui,sans-serif" font-size="13" font-weight="700" fill="#f1f5f9">Parse Layout</text>
+    <text x="14" y="78" font-family="-apple-system,system-ui,sans-serif" font-size="10.5" fill="#94a3b8">Docling document model</text>
+    <text x="14" y="93" font-family="-apple-system,system-ui,sans-serif" font-size="9.5" fill="#64748b">Headings &amp; table cells</text>
+
+    <rect x="12" y="116" width="136" height="30" rx="5" fill="#17153b" stroke="#4338ca" stroke-width="0.5"/>
+    <text x="80" y="129" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#c7d2fe">Clean Markdown output</text>
+    <text x="80" y="140" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8.5" fill="#818cf8">Fenced lease worker</text>
+  </g>
+
+  <!-- Step 3: Create Embeddings -->
+  <g transform="translate(404, 25)">
+    <rect width="160" height="160" rx="10" fill="url(#cardBg)" stroke="#0c4a6e" stroke-width="1" filter="url(#softGlow)"/>
+    <rect x="14" y="14" width="28" height="20" rx="4" fill="#082f49" stroke="#0284c7" stroke-width="0.75"/>
+    <text x="28" y="28" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="700" fill="#38bdf8">03</text>
+    <text x="50" y="28" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="600" fill="#94a3b8" letter-spacing="1">INDEX</text>
+
+    <text x="14" y="60" font-family="-apple-system,system-ui,sans-serif" font-size="13" font-weight="700" fill="#f1f5f9">Embed Vectors</text>
+    <text x="14" y="78" font-family="-apple-system,system-ui,sans-serif" font-size="10.5" fill="#94a3b8">all-MiniLM-L6-v2</text>
+    <text x="14" y="93" font-family="-apple-system,system-ui,sans-serif" font-size="9.5" fill="#64748b">384-d local embeddings</text>
+
+    <rect x="12" y="116" width="136" height="30" rx="5" fill="#07273d" stroke="#0369a1" stroke-width="0.5"/>
+    <text x="80" y="129" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#bae6fd">Section-aware chunking</text>
+    <text x="80" y="140" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8.5" fill="#38bdf8">Qdrant point upsert</text>
+  </g>
+
+  <!-- Step 4: Retrieve Evidence -->
+  <g transform="translate(594, 25)">
+    <rect width="160" height="160" rx="10" fill="url(#cardBg)" stroke="#4c1d95" stroke-width="1" filter="url(#softGlow)"/>
+    <rect x="14" y="14" width="28" height="20" rx="4" fill="#2e1065" stroke="#7c3aed" stroke-width="0.75"/>
+    <text x="28" y="28" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="700" fill="#c4b5fd">04</text>
+    <text x="50" y="28" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="600" fill="#94a3b8" letter-spacing="1">FILTER</text>
+
+    <text x="14" y="60" font-family="-apple-system,system-ui,sans-serif" font-size="13" font-weight="700" fill="#f1f5f9">Vector Search</text>
+    <text x="14" y="78" font-family="-apple-system,system-ui,sans-serif" font-size="10.5" fill="#94a3b8">Cosine similarity</text>
+    <text x="14" y="93" font-family="-apple-system,system-ui,sans-serif" font-size="9.5" fill="#64748b">Threshold score &gt;= 0.35</text>
+
+    <rect x="12" y="116" width="136" height="30" rx="5" fill="#200d43" stroke="#6d28d9" stroke-width="0.5"/>
+    <text x="80" y="129" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#ddd6fe">Mandatory user_id filter</text>
+    <text x="80" y="140" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8.5" fill="#a78bfa">Strict tenant isolation</text>
+  </g>
+
+  <!-- Step 5: Answer with Citations -->
+  <g transform="translate(784, 25)">
+    <rect width="152" height="160" rx="10" fill="url(#cardBg)" stroke="#065f46" stroke-width="1" filter="url(#softGlow)"/>
+    <rect x="14" y="14" width="28" height="20" rx="4" fill="#064e3b" stroke="#059669" stroke-width="0.75"/>
+    <text x="28" y="28" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="700" fill="#6ee7b7">05</text>
+    <text x="50" y="28" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="600" fill="#94a3b8" letter-spacing="1">GROUND</text>
+
+    <text x="14" y="60" font-family="-apple-system,system-ui,sans-serif" font-size="13" font-weight="700" fill="#f1f5f9">Grounded AI</text>
+    <text x="14" y="78" font-family="-apple-system,system-ui,sans-serif" font-size="10.5" fill="#94a3b8">Gemini 3.8 Flash</text>
+    <text x="14" y="93" font-family="-apple-system,system-ui,sans-serif" font-size="9.5" fill="#64748b">Framed &lt;EVIDENCE&gt;</text>
+
+    <rect x="12" y="116" width="128" height="30" rx="5" fill="#062e24" stroke="#047857" stroke-width="0.5"/>
+    <text x="76" y="129" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#a7f3d0">Verified citation cards</text>
+    <text x="76" y="140" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="8.5" fill="#34d399">Zero invented sources</text>
+  </g>
+</svg>
