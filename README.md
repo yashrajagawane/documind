@@ -4,8 +4,6 @@
 
 <br/>
 
-# DocuMind
-
 **Private Documents. Structural Understanding. Verifiable Answers.**
 
 *An open-source workspace that turns complex documents into structured, searchable knowledge — with layout-aware parsing, semantic retrieval, and grounded answers backed by server-verified citations.*
