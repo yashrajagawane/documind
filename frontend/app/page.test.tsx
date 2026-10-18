@@ -395,6 +395,111 @@ describe("HomePage Authentication Form & Onboarding", () => {
       expect(mockRouter.push).toHaveBeenCalledWith("/");
     });
   });
+
+  it("Mobile navigation: renders mobile tab switcher and switches active pane between Documents, Preview, and Chat", async () => {
+    vi.mocked(authContext.useAuth).mockReturnValue({
+      accessToken: "mock-token-xyz",
+      user: { id: "u-1", email: "user@example.com" },
+      isLoading: false,
+      signIn: vi.fn(),
+      register: vi.fn(),
+      signOut: vi.fn(),
+    });
+
+    vi.mocked(api.apiFetch).mockImplementation((path) => {
+      if (path === "/documents") {
+        return Promise.resolve([
+          {
+            id: "doc-1",
+            original_name: "mobile-doc.pdf",
+            checksum_sha256: "hash123",
+            status: "ready",
+            processing_stage: null,
+            processing_progress: 100,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      }
+      return Promise.reject(new Error("Unknown route"));
+    });
+
+    renderWithClient(<HomePage />);
+
+    const nav = await screen.findByRole("tablist", { name: "Mobile workspace view switcher" });
+    expect(nav).toBeInTheDocument();
+
+    const docsTab = screen.getByRole("tab", { name: /Documents/i });
+    const previewTab = screen.getByRole("tab", { name: /Preview/i });
+    const chatTab = screen.getByRole("tab", { name: /Chat/i });
+
+    expect(docsTab).toHaveAttribute("aria-selected", "true");
+    expect(previewTab).toHaveAttribute("aria-selected", "false");
+    expect(chatTab).toHaveAttribute("aria-selected", "false");
+
+    // Switch to Chat tab
+    fireEvent.click(chatTab);
+    expect(chatTab).toHaveAttribute("aria-selected", "true");
+    expect(docsTab).toHaveAttribute("aria-selected", "false");
+
+    // Switch to Preview tab
+    fireEvent.click(previewTab);
+    expect(previewTab).toHaveAttribute("aria-selected", "true");
+    expect(chatTab).toHaveAttribute("aria-selected", "false");
+
+    // Switch back to Documents tab
+    fireEvent.click(docsTab);
+    expect(docsTab).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("Mobile navigation: clicking preview on a document automatically switches to Preview tab", async () => {
+    vi.mocked(authContext.useAuth).mockReturnValue({
+      accessToken: "mock-token-xyz",
+      user: { id: "u-1", email: "user@example.com" },
+      isLoading: false,
+      signIn: vi.fn(),
+      register: vi.fn(),
+      signOut: vi.fn(),
+    });
+
+    vi.mocked(api.apiFetch).mockImplementation((path) => {
+      if (path === "/documents") {
+        return Promise.resolve([
+          {
+            id: "doc-1",
+            original_name: "mobile-doc.pdf",
+            checksum_sha256: "hash123",
+            status: "ready",
+            processing_stage: null,
+            processing_progress: 100,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      }
+      if (path === "/documents/doc-1/preview") {
+        return Promise.resolve({
+          id: "doc-1",
+          original_name: "mobile-doc.pdf",
+          checksum_sha256: "hash123",
+          status: "ready",
+          processing_stage: null,
+          processing_progress: 100,
+          created_at: new Date().toISOString(),
+          markdown: "# Mobile Doc Content",
+          tables: [],
+          metadata: { word_count: 3, character_count: 18 },
+        });
+      }
+      return Promise.reject(new Error("Unknown route"));
+    });
+
+    renderWithClient(<HomePage />);
+
+    const docBtn = await screen.findByRole("button", { name: "mobile-doc.pdf" });
+    fireEvent.click(docBtn);
+
+    const previewTab = screen.getByRole("tab", { name: /Preview/i });
+    expect(previewTab).toHaveAttribute("aria-selected", "true");
+  });
 });
 
 

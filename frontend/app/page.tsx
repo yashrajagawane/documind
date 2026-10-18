@@ -218,6 +218,9 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
   const selectedDocumentId = searchParams.get("doc");
 
   const queryClient = useQueryClient();
+  const [mobileTab, setMobileTab] = useState<"sidebar" | "preview" | "chat">(
+    selectedDocumentId ? "preview" : "sidebar"
+  );
   const [globalMessage, setGlobalMessage] = useState<string | null>(null);
   /** Per-document conversation histories, keyed by document ID. */
   const [chatHistories, setChatHistories] = useState<Record<string, ChatMessage[]>>({});
@@ -365,6 +368,7 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
       void queryClient.invalidateQueries({ queryKey: ["documents", accessToken] });
       if (selectedDocumentId === id) {
         setHighlightSection(null);
+        setMobileTab("sidebar");
         router.push(pathname || "/");
       }
       queryClient.removeQueries({ queryKey: ["document-preview", id, accessToken] });
@@ -422,6 +426,7 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
     abortControllerRef.current?.abort();
     setHighlightSection(null);
     setGlobalMessage(null);
+    setMobileTab("preview");
     router.push(`${pathname || "/"}?doc=${encodeURIComponent(id)}`);
   };
 
@@ -432,6 +437,7 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
   const handleAsk = async (questionText: string) => {
     if (!accessToken || !preview) return;
     const docId = preview.id;
+    setMobileTab("chat");
 
     // Create a new AbortController for this generation
     const controller = new AbortController();
@@ -542,7 +548,10 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
 
       <div className="workspace-shell">
         {/* ── LEFT SIDEBAR ──────────────────────────────────────── */}
-        <aside className="workspace-sidebar" aria-label="Navigation sidebar">
+        <aside
+          className={`workspace-sidebar ${mobileTab === "sidebar" ? "mobile-active" : ""}`}
+          aria-label="Navigation sidebar"
+        >
           {/* Brand header */}
           <div className="sidebar-header">
             <p className="sidebar-brand">DocuMind</p>
@@ -600,7 +609,7 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
         {/* ── CENTER PANE — Document Preview (Main Landmark) ───── */}
         <main
           id="main-content"
-          className="workspace-center"
+          className={`workspace-center ${mobileTab === "preview" ? "mobile-active" : ""}`}
           aria-label="Document viewer"
           tabIndex={-1}
         >
@@ -649,7 +658,10 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
         </main>
 
         {/* ── RIGHT PANE — Chat (Complementary Landmark) ───────── */}
-        <aside className="workspace-chat" aria-label="AI chat panel">
+        <aside
+          className={`workspace-chat ${mobileTab === "chat" ? "mobile-active" : ""}`}
+          aria-label="AI chat panel"
+        >
         <div className="chat-pane-header">
           <div style={{ minWidth: 0 }}>
             <p className="chat-pane-label">Grounded Q&amp;A</p>
@@ -699,6 +711,56 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
           </div>
         )}
         </aside>
+
+        {/* ── MOBILE BOTTOM NAVIGATION (Visible only on <=768px) ── */}
+        <nav
+          className="mobile-tab-bar"
+          role="tablist"
+          aria-label="Mobile workspace view switcher"
+        >
+          <button
+            type="button"
+            className={`mobile-tab-btn ${mobileTab === "sidebar" ? "active" : ""}`}
+            aria-selected={mobileTab === "sidebar"}
+            role="tab"
+            onClick={() => setMobileTab("sidebar")}
+          >
+            <span className="mobile-tab-icon" aria-hidden="true">
+              📁
+            </span>
+            <span className="mobile-tab-text">Documents</span>
+            {documents.length > 0 && (
+              <span className="mobile-tab-badge">{documents.length}</span>
+            )}
+          </button>
+          <button
+            type="button"
+            className={`mobile-tab-btn ${mobileTab === "preview" ? "active" : ""}`}
+            aria-selected={mobileTab === "preview"}
+            role="tab"
+            onClick={() => setMobileTab("preview")}
+          >
+            <span className="mobile-tab-icon" aria-hidden="true">
+              📄
+            </span>
+            <span className="mobile-tab-text">Preview</span>
+          </button>
+          <button
+            type="button"
+            className={`mobile-tab-btn ${mobileTab === "chat" ? "active" : ""}`}
+            aria-selected={mobileTab === "chat"}
+            role="tab"
+            onClick={() => setMobileTab("chat")}
+          >
+            <span className="mobile-tab-icon" aria-hidden="true">
+              💬
+            </span>
+            <span className="mobile-tab-text">Chat</span>
+            {messages.length > 0 && (
+              <span className="mobile-tab-badge">{messages.length}</span>
+            )}
+          </button>
+        </nav>
       </div>
     </>
   );
