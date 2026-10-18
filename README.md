@@ -59,8 +59,6 @@
 - [Project Status & Honest Limitations](#project-status--honest-limitations)
 - [Troubleshooting](#troubleshooting)
 - [Roadmap](#roadmap)
-- [Contributing & License](#contributing--license)
-
 ---
 
 ## Overview
