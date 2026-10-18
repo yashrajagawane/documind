@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import HomePage from "./page";
 import * as authContext from "@/lib/auth-context";
 import * as api from "@/lib/api";
+import { mockRouter, setTestSearchParams } from "../tests/setup";
 
 // Mock useAuth hook
 vi.mock("@/lib/auth-context", () => ({
@@ -192,5 +193,208 @@ describe("HomePage Authentication Form & Onboarding", () => {
       expect(mockSignOut).toHaveBeenCalled();
     });
   });
+
+  it("URL deep linking: loads and previews document directly when ?doc=<id> is in URL", async () => {
+    setTestSearchParams("doc=doc-1");
+
+    vi.mocked(authContext.useAuth).mockReturnValue({
+      accessToken: "mock-token-xyz",
+      user: { id: "u-1", email: "user@example.com" },
+      isLoading: false,
+      signIn: mockSignIn,
+      register: mockRegister,
+      signOut: mockSignOut,
+    });
+
+    vi.mocked(api.apiFetch).mockImplementation((path) => {
+      if (path === "/documents") {
+        return Promise.resolve([
+          {
+            id: "doc-1",
+            original_name: "deep-doc.pdf",
+            checksum_sha256: "hash123",
+            status: "ready",
+            processing_stage: null,
+            processing_progress: 100,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      }
+      if (path === "/documents/doc-1/preview") {
+        return Promise.resolve({
+          id: "doc-1",
+          original_name: "deep-doc.pdf",
+          checksum_sha256: "hash123",
+          status: "ready",
+          processing_stage: null,
+          processing_progress: 100,
+          created_at: new Date().toISOString(),
+          markdown: "# Deep Linked Document Content",
+          tables: [],
+          metadata: { word_count: 5, character_count: 30 },
+        });
+      }
+      return Promise.reject(new Error("Unknown route"));
+    });
+
+    renderWithClient(<HomePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Deep Linked Document Content")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("listitem", { current: true })).toHaveTextContent("deep-doc.pdf");
+  });
+
+  it("URL synchronization: clicking a ready document calls router.push with ?doc=<id>", async () => {
+    vi.mocked(authContext.useAuth).mockReturnValue({
+      accessToken: "mock-token-xyz",
+      user: { id: "u-1", email: "user@example.com" },
+      isLoading: false,
+      signIn: mockSignIn,
+      register: mockRegister,
+      signOut: mockSignOut,
+    });
+
+    vi.mocked(api.apiFetch).mockImplementation((path) => {
+      if (path === "/documents") {
+        return Promise.resolve([
+          {
+            id: "doc-2",
+            original_name: "second-doc.pdf",
+            checksum_sha256: "hash456",
+            status: "ready",
+            processing_stage: null,
+            processing_progress: 100,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      }
+      if (path === "/documents/doc-2/preview") {
+        return Promise.resolve({
+          id: "doc-2",
+          original_name: "second-doc.pdf",
+          checksum_sha256: "hash456",
+          status: "ready",
+          processing_stage: null,
+          processing_progress: 100,
+          created_at: new Date().toISOString(),
+          markdown: "# Preview for Second Doc",
+          tables: [],
+          metadata: { word_count: 4, character_count: 24 },
+        });
+      }
+      return Promise.reject(new Error("Unknown route"));
+    });
+
+    renderWithClient(<HomePage />);
+
+    const docBtn = await screen.findByRole("button", { name: "second-doc.pdf" });
+    fireEvent.click(docBtn);
+
+    expect(mockRouter.push).toHaveBeenCalledWith("/?doc=doc-2");
+    await waitFor(() => {
+      expect(screen.getByText("Preview for Second Doc")).toBeInTheDocument();
+    });
+  });
+
+  it("Invalid document deep link fallback: replaces URL with / and displays clear alert", async () => {
+    setTestSearchParams("doc=non-existent-doc");
+
+    vi.mocked(authContext.useAuth).mockReturnValue({
+      accessToken: "mock-token-xyz",
+      user: { id: "u-1", email: "user@example.com" },
+      isLoading: false,
+      signIn: mockSignIn,
+      register: mockRegister,
+      signOut: mockSignOut,
+    });
+
+    vi.mocked(api.apiFetch).mockImplementation((path) => {
+      if (path === "/documents") {
+        return Promise.resolve([
+          {
+            id: "doc-1",
+            original_name: "existing-doc.pdf",
+            checksum_sha256: "hash123",
+            status: "ready",
+            processing_stage: null,
+            processing_progress: 100,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      }
+      return Promise.reject(new Error("Unknown route"));
+    });
+
+    renderWithClient(<HomePage />);
+
+    await waitFor(() => {
+      expect(mockRouter.replace).toHaveBeenCalledWith("/");
+      expect(screen.getByText("The requested document could not be found.")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Select a document to preview")).toBeInTheDocument();
+  });
+
+  it("Document deletion clears URL search params and resets selection", async () => {
+    setTestSearchParams("doc=doc-1");
+
+    vi.mocked(authContext.useAuth).mockReturnValue({
+      accessToken: "mock-token-xyz",
+      user: { id: "u-1", email: "user@example.com" },
+      isLoading: false,
+      signIn: mockSignIn,
+      register: mockRegister,
+      signOut: mockSignOut,
+    });
+
+    vi.mocked(api.apiFetch).mockImplementation((path, options) => {
+      if (path === "/documents" && (!options || options.method === undefined)) {
+        return Promise.resolve([
+          {
+            id: "doc-1",
+            original_name: "to-delete.pdf",
+            checksum_sha256: "hash123",
+            status: "ready",
+            processing_stage: null,
+            processing_progress: 100,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      }
+      if (path === "/documents/doc-1/preview") {
+        return Promise.resolve({
+          id: "doc-1",
+          original_name: "to-delete.pdf",
+          checksum_sha256: "hash123",
+          status: "ready",
+          processing_stage: null,
+          processing_progress: 100,
+          created_at: new Date().toISOString(),
+          markdown: "# To Delete Content",
+          tables: [],
+          metadata: { word_count: 3, character_count: 18 },
+        });
+      }
+      if (path === "/documents/doc-1" && options?.method === "DELETE") {
+        return Promise.resolve();
+      }
+      return Promise.reject(new Error("Unknown route"));
+    });
+
+    renderWithClient(<HomePage />);
+
+    await screen.findByText("To Delete Content");
+
+    const deleteBtn = screen.getByRole("button", { name: "Delete to-delete.pdf" });
+    fireEvent.click(deleteBtn);
+
+    const confirmBtn = await screen.findByRole("button", { name: "Delete document" });
+    fireEvent.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(mockRouter.push).toHaveBeenCalledWith("/");
+    });
+  });
 });
+
 

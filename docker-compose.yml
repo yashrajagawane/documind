@@ -39,7 +39,11 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      qdrant:
+        condition: service_started
     command: ["celery", "-A", "app.jobs.celery_app:celery_app", "worker", "--loglevel=INFO", "--concurrency=1", "--queues=document-processing"]
+    volumes:
+      - ./storage:/app/storage
 
   scheduler:
     build: ./backend

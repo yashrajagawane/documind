@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
 import { ChatPanel } from "@/components/ChatPanel";
 import { DocumentList } from "@/components/DocumentList";
@@ -21,6 +22,7 @@ import type {
    Root page — shows auth form or workspace shell
 ────────────────────────────────────────────────────────────────── */
 export default function HomePage() {
+  const router = useRouter();
   const { accessToken, user, isLoading, signIn, register, signOut } = useAuth();
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -33,6 +35,7 @@ export default function HomePage() {
   const handleSignOut = async () => {
     queryClient.clear();
     await signOut();
+    router.replace("/");
   };
 
   const getFriendlyAuthError = (rawMessage: string): string => {
@@ -80,11 +83,19 @@ export default function HomePage() {
 
   if (user) {
     return (
-      <DocumentWorkspace
-        accessToken={accessToken}
-        userEmail={user.email}
-        onSignOut={() => void handleSignOut()}
-      />
+      <Suspense
+        fallback={
+          <main className="auth-shell">
+            <p className="muted">Loading workspace…</p>
+          </main>
+        }
+      >
+        <DocumentWorkspace
+          accessToken={accessToken}
+          userEmail={user.email}
+          onSignOut={() => void handleSignOut()}
+        />
+      </Suspense>
     );
   }
 
@@ -201,8 +212,12 @@ interface WorkspaceProps {
 }
 
 function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<WorkspaceProps>) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const selectedDocumentId = searchParams.get("doc");
+
   const queryClient = useQueryClient();
-  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [globalMessage, setGlobalMessage] = useState<string | null>(null);
   /** Per-document conversation histories, keyed by document ID. */
   const [chatHistories, setChatHistories] = useState<Record<string, ChatMessage[]>>({});
@@ -248,8 +263,16 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
     enabled: !!selectedDocumentId && !!accessToken,
   });
 
+  const invalidDocRequested = Boolean(
+    selectedDocumentId &&
+      !loading &&
+      !docsError &&
+      !documents.some((doc) => doc.id === selectedDocumentId)
+  );
+
   const activeAlert =
     globalMessage ??
+    (invalidDocRequested ? "The requested document could not be found." : null) ??
     (docsError instanceof Error
       ? docsError.message
       : docsError
@@ -273,6 +296,16 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
     }
   }, [selectedDocStatus, selectedDocumentId, accessToken, queryClient]);
 
+  /* ── 4. Fallback if URL requests a document ID that does not exist ── */
+  useEffect(() => {
+    if (invalidDocRequested) {
+      router.replace(pathname || "/");
+      queueMicrotask(() => {
+        setGlobalMessage("The requested document could not be found.");
+      });
+    }
+  }, [invalidDocRequested, router, pathname]);
+
   /** Messages for the currently previewed document. */
   const messages = preview ? (chatHistories[preview.id] ?? []) : [];
 
@@ -283,7 +316,7 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
     }));
   };
 
-  /* ── 4. Mutations for Upload, Delete, and Retry ────────────────── */
+  /* ── 5. Mutations for Upload, Delete, and Retry ────────────────── */
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       if (!accessToken) {
@@ -331,8 +364,8 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
       );
       void queryClient.invalidateQueries({ queryKey: ["documents", accessToken] });
       if (selectedDocumentId === id) {
-        setSelectedDocumentId(null);
         setHighlightSection(null);
+        router.push(pathname || "/");
       }
       queryClient.removeQueries({ queryKey: ["document-preview", id, accessToken] });
       setChatHistories((prev) => {
@@ -387,9 +420,9 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
   const handlePreview = (id: string) => {
     if (!accessToken) return;
     abortControllerRef.current?.abort();
-    setSelectedDocumentId(id);
     setHighlightSection(null);
     setGlobalMessage(null);
+    router.push(`${pathname || "/"}?doc=${encodeURIComponent(id)}`);
   };
 
   const handleAbort = () => {
