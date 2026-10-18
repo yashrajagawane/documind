@@ -9,7 +9,8 @@ import { ChatPanel } from "@/components/ChatPanel";
 import { DocumentList } from "@/components/DocumentList";
 import { DocumentPreview } from "@/components/DocumentPreview";
 import { UploadZone } from "@/components/UploadZone";
-import { apiDownload, apiFetch, apiStreamSSE } from "@/lib/api";
+import { apiDownload, apiFetch, apiStreamSSE, apiUploadWithProgress } from "@/lib/api";
+import type { UploadProgress } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import type {
   ChatMessage,
@@ -321,20 +322,26 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
 
   /* ── 5. Mutations for Upload, Delete, and Retry ────────────────── */
   const uploadMutation = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async ({
+      file,
+      onProgress,
+    }: {
+      file: File;
+      onProgress?: (progress: UploadProgress) => void;
+    }) => {
       if (!accessToken) {
         throw new Error("Authentication required. Please sign in to upload documents.");
       }
       const formData = new FormData();
       formData.append("file", file);
-      return apiFetch<DocumentSummary>(
+      return apiUploadWithProgress<DocumentSummary>(
         "/documents",
+        formData,
         {
-          method: "POST",
-          body: formData,
-          headers: { "Idempotency-Key": crypto.randomUUID() },
-        },
-        accessToken
+          accessToken,
+          idempotencyKey: crypto.randomUUID(),
+          onProgress,
+        }
       );
     },
     onSuccess: (uploadedDoc) => {
@@ -346,9 +353,12 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
     },
   });
 
-  const handleUpload = async (file: File) => {
+  const handleUpload = async (
+    file: File,
+    onProgress?: (progress: UploadProgress) => void
+  ) => {
     setGlobalMessage(null);
-    await uploadMutation.mutateAsync(file);
+    await uploadMutation.mutateAsync({ file, onProgress });
   };
 
   const deleteMutation = useMutation({

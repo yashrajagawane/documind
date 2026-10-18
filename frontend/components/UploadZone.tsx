@@ -3,8 +3,13 @@
 import { useState, useRef } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 
+import type { UploadProgress } from "@/lib/api";
+
 interface UploadZoneProps {
-  onUpload: (file: File) => Promise<void>;
+  onUpload: (
+    file: File,
+    onProgress?: (progress: UploadProgress) => void
+  ) => Promise<void>;
   disabled?: boolean;
   /** Compact mode for sidebar: smaller padding and abbreviated text. */
   compact?: boolean;
@@ -15,13 +20,16 @@ export interface UploadQueueItem {
   name: string;
   size: number;
   status: "pending" | "uploading" | "success" | "error";
+  progressPercent?: number;
+  loadedBytes?: number;
+  totalBytes?: number;
   error?: string;
 }
 
 const ALLOWED_EXTENSIONS = [".pdf", ".docx", ".xlsx", ".pptx", ".txt", ".csv", ".md"];
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024; // 25MB
 
-function formatBytes(bytes: number): string {
+export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -68,13 +76,47 @@ export function UploadZone({ onUpload, disabled = false, compact = false }: Read
     // Process valid files sequentially or with bounded concurrency
     for (const { file, item } of validFiles) {
       setQueue((prev) =>
-        prev.map((q) => (q.id === item.id ? { ...q, status: "uploading" } : q))
+        prev.map((q) =>
+          q.id === item.id
+            ? {
+                ...q,
+                status: "uploading",
+                progressPercent: 0,
+                loadedBytes: 0,
+                totalBytes: file.size,
+              }
+            : q
+        )
       );
 
       try {
-        await onUpload(file);
+        await onUpload(file, (progress) => {
+          setQueue((prev) =>
+            prev.map((q) =>
+              q.id === item.id
+                ? {
+                    ...q,
+                    progressPercent: progress.percent,
+                    loadedBytes: progress.loaded,
+                    totalBytes: progress.total > 0 ? progress.total : file.size,
+                  }
+                : q
+            )
+          );
+        });
+
         setQueue((prev) =>
-          prev.map((q) => (q.id === item.id ? { ...q, status: "success" } : q))
+          prev.map((q) =>
+            q.id === item.id
+              ? {
+                  ...q,
+                  status: "success",
+                  progressPercent: 100,
+                  loadedBytes: file.size,
+                  totalBytes: file.size,
+                }
+              : q
+          )
         );
       } catch (err) {
         setQueue((prev) =>
@@ -218,42 +260,96 @@ export function UploadZone({ onUpload, disabled = false, compact = false }: Read
                 className="upload-item"
                 style={{
                   display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
+                  flexDirection: "column",
                   padding: "0.45rem 0.75rem",
                   background: "var(--surface)",
                   borderRadius: "0.4rem",
                   border: "1px solid var(--border)",
                   fontSize: "0.82rem",
+                  gap: "0.25rem",
                 }}
               >
                 <div
-                  style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                  title={item.name}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    width: "100%",
+                  }}
                 >
-                  <strong style={{ wordBreak: "break-all" }}>{item.name}</strong>{" "}
-                  <small style={{ color: "var(--text-secondary)" }}>({formatBytes(item.size)})</small>
-                  {item.error && (
-                    <div style={{ color: "#fca5a5", fontSize: "0.75rem", marginTop: "0.15rem" }}>
-                      {item.error}
-                    </div>
-                  )}
+                  <div
+                    style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                    title={item.name}
+                  >
+                    <strong style={{ wordBreak: "break-all" }}>{item.name}</strong>{" "}
+                    <small style={{ color: "var(--text-secondary)" }}>({formatBytes(item.size)})</small>
+                    {item.error && (
+                      <div style={{ color: "#fca5a5", fontSize: "0.75rem", marginTop: "0.15rem" }}>
+                        {item.error}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ marginLeft: "0.75rem", flexShrink: 0 }}>
+                    {item.status === "pending" && (
+                      <span style={{ color: "var(--text-secondary)" }}>Queued</span>
+                    )}
+                    {item.status === "uploading" && (
+                      <span style={{ color: "var(--accent)", fontWeight: 600 }}>
+                        {item.progressPercent !== undefined ? `${item.progressPercent}%` : "Uploading…"}
+                      </span>
+                    )}
+                    {item.status === "success" && (
+                      <span style={{ color: "#10b981", fontWeight: 600 }}>✓ Uploaded</span>
+                    )}
+                    {item.status === "error" && (
+                      <span style={{ color: "#ef4444", fontWeight: 600 }}>Failed</span>
+                    )}
+                  </div>
                 </div>
 
-                <div style={{ marginLeft: "0.75rem", flexShrink: 0 }}>
-                  {item.status === "pending" && (
-                    <span style={{ color: "var(--text-secondary)" }}>Queued</span>
-                  )}
-                  {item.status === "uploading" && (
-                    <span style={{ color: "var(--accent)", fontWeight: 600 }}>Uploading…</span>
-                  )}
-                  {item.status === "success" && (
-                    <span style={{ color: "#10b981", fontWeight: 600 }}>✓ Uploaded</span>
-                  )}
-                  {item.status === "error" && (
-                    <span style={{ color: "#ef4444", fontWeight: 600 }}>Failed</span>
-                  )}
-                </div>
+                {item.status === "uploading" && (
+                  <div style={{ width: "100%", marginTop: "0.15rem" }}>
+                    <div
+                      role="progressbar"
+                      aria-valuenow={item.progressPercent ?? 0}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`Upload progress for ${item.name}`}
+                      style={{
+                        width: "100%",
+                        height: "4px",
+                        background: "rgba(255, 255, 255, 0.08)",
+                        borderRadius: "2px",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: `${item.progressPercent ?? 0}%`,
+                          height: "100%",
+                          background: "var(--accent, #7c3aed)",
+                          transition: "width 0.15s ease-out",
+                          borderRadius: "2px",
+                        }}
+                      />
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontSize: "0.72rem",
+                        color: "var(--text-secondary)",
+                        marginTop: "0.2rem",
+                      }}
+                    >
+                      <span>
+                        {formatBytes(item.loadedBytes ?? 0)} / {formatBytes(item.totalBytes ?? item.size)}
+                      </span>
+                      <span>Uploading…</span>
+                    </div>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

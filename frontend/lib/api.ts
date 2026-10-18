@@ -207,3 +207,125 @@ export async function* apiStreamSSE(
     if (dataText) yield { event: eventType, data: dataText };
   }
 }
+
+export interface UploadProgress {
+  loaded: number;
+  total: number;
+  percent: number;
+}
+
+export type UploadProgressCallback = (progress: UploadProgress) => void;
+
+export interface UploadOptions {
+  accessToken?: string | null;
+  idempotencyKey?: string;
+  onProgress?: UploadProgressCallback;
+  retryCount?: number;
+  signal?: AbortSignal;
+}
+
+export async function apiUploadWithProgress<T>(
+  path: string,
+  formData: FormData,
+  options: UploadOptions = {},
+): Promise<T> {
+  const { accessToken, idempotencyKey, onProgress, retryCount = 0, signal } = options;
+
+  return new Promise<T>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException("Upload aborted", "AbortError"));
+      return;
+    }
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${apiBaseUrl}${path}`);
+    xhr.withCredentials = true;
+
+    xhr.setRequestHeader("Accept", "application/json");
+    if (accessToken) {
+      xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
+    }
+    if (idempotencyKey) {
+      xhr.setRequestHeader("Idempotency-Key", idempotencyKey);
+    }
+
+    if (onProgress && xhr.upload) {
+      xhr.upload.onprogress = (event: ProgressEvent) => {
+        if (event.lengthComputable && event.total > 0) {
+          const percent = Math.min(100, Math.round((event.loaded / event.total) * 100));
+          onProgress({
+            loaded: event.loaded,
+            total: event.total,
+            percent,
+          });
+        }
+      };
+    }
+
+    let abortHandler: (() => void) | null = null;
+    if (signal) {
+      abortHandler = () => xhr.abort();
+      signal.addEventListener("abort", abortHandler, { once: true });
+    }
+
+    const cleanup = () => {
+      if (signal && abortHandler) {
+        signal.removeEventListener("abort", abortHandler);
+      }
+    };
+
+    xhr.onload = async () => {
+      cleanup();
+
+      if (xhr.status === 401 && !isAuthRoute(path) && retryCount === 0) {
+        const newToken = await coordinateTokenRefresh();
+        if (newToken) {
+          try {
+            const retried = await apiUploadWithProgress<T>(path, formData, {
+              ...options,
+              accessToken: newToken,
+              retryCount: retryCount + 1,
+            });
+            resolve(retried);
+            return;
+          } catch (retryErr) {
+            reject(retryErr);
+            return;
+          }
+        }
+      }
+
+      if (xhr.status >= 200 && xhr.status < 300) {
+        if (xhr.status === 204) {
+          resolve(undefined as T);
+          return;
+        }
+        try {
+          const data = JSON.parse(xhr.responseText) as T;
+          resolve(data);
+        } catch {
+          resolve(undefined as T);
+        }
+      } else {
+        try {
+          const body = JSON.parse(xhr.responseText) as ApiError;
+          reject(new Error(body?.error?.message ?? "The request could not be completed."));
+        } catch {
+          reject(new Error("The request could not be completed."));
+        }
+      }
+    };
+
+    xhr.onerror = () => {
+      cleanup();
+      reject(new Error("Network error during file upload. Please check your connection."));
+    };
+
+    xhr.onabort = () => {
+      cleanup();
+      reject(new DOMException("Upload aborted", "AbortError"));
+    };
+
+    xhr.send(formData);
+  });
+}

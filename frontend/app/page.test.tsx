@@ -12,12 +12,13 @@ vi.mock("@/lib/auth-context", () => ({
   useAuth: vi.fn(),
 }));
 
-// Mock apiFetch
+// Mock apiFetch and apiUploadWithProgress
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>();
   return {
     ...actual,
     apiFetch: vi.fn(),
+    apiUploadWithProgress: vi.fn(),
   };
 });
 

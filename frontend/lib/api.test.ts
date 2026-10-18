@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   apiFetch,
+  apiUploadWithProgress,
   registerAuthCallbacks,
   unregisterAuthCallbacks,
 } from "./api";
@@ -188,5 +189,99 @@ describe("api client auth and refresh coordination", () => {
 
     const refreshCall = mockFetch.mock.calls.find((c) => c[0].includes("/auth/refresh"));
     expect(refreshCall).toBeUndefined();
+  });
+
+  it("dispatches progress events and resolves with response payload in apiUploadWithProgress", async () => {
+    const originalXHR = global.XMLHttpRequest;
+    const mockUpload = { onprogress: null as ((e: ProgressEvent) => void) | null };
+    const mockXHR = {
+      open: vi.fn(),
+      setRequestHeader: vi.fn(),
+      send: vi.fn(function (this: {
+        status: number;
+        responseText: string;
+        onload: () => void;
+      }) {
+        if (mockUpload.onprogress) {
+          mockUpload.onprogress({
+            lengthComputable: true,
+            loaded: 50,
+            total: 100,
+          } as ProgressEvent);
+        }
+        this.status = 200;
+        this.responseText = JSON.stringify({ id: "doc-1", name: "uploaded.pdf" });
+        this.onload();
+      }),
+      upload: mockUpload,
+      status: 200,
+      responseText: "",
+      onload: vi.fn(),
+      onerror: vi.fn(),
+      withCredentials: false,
+    };
+    // @ts-expect-error test mock
+    global.XMLHttpRequest = vi.fn(() => mockXHR);
+
+    try {
+      const onProgress = vi.fn();
+      const formData = new FormData();
+      formData.append("file", new File(["test"], "uploaded.pdf"));
+
+      const res = await apiUploadWithProgress<{ id: string; name: string }>(
+        "/documents",
+        formData,
+        {
+          accessToken: "valid-token",
+          idempotencyKey: "idem-123",
+          onProgress,
+        }
+      );
+
+      expect(res).toEqual({ id: "doc-1", name: "uploaded.pdf" });
+      expect(mockXHR.open).toHaveBeenCalledWith("POST", expect.stringContaining("/documents"));
+      expect(mockXHR.setRequestHeader).toHaveBeenCalledWith("Authorization", "Bearer valid-token");
+      expect(mockXHR.setRequestHeader).toHaveBeenCalledWith("Idempotency-Key", "idem-123");
+      expect(onProgress).toHaveBeenCalledWith({ loaded: 50, total: 100, percent: 50 });
+    } finally {
+      global.XMLHttpRequest = originalXHR;
+    }
+  });
+
+  it("rejects with backend error message on non-200 status in apiUploadWithProgress", async () => {
+    const originalXHR = global.XMLHttpRequest;
+    const mockXHR = {
+      open: vi.fn(),
+      setRequestHeader: vi.fn(),
+      send: vi.fn(function (this: {
+        status: number;
+        responseText: string;
+        onload: () => void;
+      }) {
+        this.status = 400;
+        this.responseText = JSON.stringify({
+          success: false,
+          error: { code: "BAD_REQUEST", message: "File is corrupted." },
+        });
+        this.onload();
+      }),
+      upload: {},
+      status: 400,
+      responseText: "",
+      onload: vi.fn(),
+      onerror: vi.fn(),
+      withCredentials: false,
+    };
+    // @ts-expect-error test mock
+    global.XMLHttpRequest = vi.fn(() => mockXHR);
+
+    try {
+      const formData = new FormData();
+      await expect(
+        apiUploadWithProgress("/documents", formData)
+      ).rejects.toThrow("File is corrupted.");
+    } finally {
+      global.XMLHttpRequest = originalXHR;
+    }
   });
 });

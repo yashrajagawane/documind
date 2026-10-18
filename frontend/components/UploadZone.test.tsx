@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 
 import { UploadZone } from "./UploadZone";
@@ -20,7 +20,7 @@ test("handles valid file upload and displays activity status", async () => {
   fireEvent.change(input, { target: { files: [file] } });
 
   await waitFor(() => {
-    expect(onUpload).toHaveBeenCalledWith(file);
+    expect(onUpload).toHaveBeenCalledWith(file, expect.any(Function));
     expect(screen.getByText("document.pdf")).toBeInTheDocument();
     expect(screen.getByText("✓ Uploaded")).toBeInTheDocument();
   });
@@ -51,10 +51,58 @@ test("displays error status when onUpload rejects with an authentication or netw
   fireEvent.change(input, { target: { files: [file] } });
 
   await waitFor(() => {
-    expect(onUpload).toHaveBeenCalledWith(file);
+    expect(onUpload).toHaveBeenCalledWith(file, expect.any(Function));
     expect(screen.getByText("secure-doc.pdf")).toBeInTheDocument();
     expect(screen.getByText("Failed")).toBeInTheDocument();
     expect(screen.getByText("Authentication required. Please sign in to upload documents.")).toBeInTheDocument();
+  });
+});
+
+test("tracks and renders real-time upload progress with percentage and progressbar", async () => {
+  let progressCb: ((progress: { loaded: number; total: number; percent: number }) => void) | undefined;
+  let finishUpload: (() => void) | undefined;
+
+  const onUpload = vi.fn().mockImplementation((_file, onProgress) => {
+    progressCb = onProgress;
+    return new Promise<void>((resolve) => {
+      finishUpload = resolve;
+    });
+  });
+
+  const { container } = render(<UploadZone onUpload={onUpload} />);
+  const file = new File(["sample content to upload"], "report.pdf", { type: "application/pdf" });
+  const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+
+  fireEvent.change(input, { target: { files: [file] } });
+
+  await waitFor(() => {
+    expect(onUpload).toHaveBeenCalledWith(file, expect.any(Function));
+    expect(screen.getByText("report.pdf")).toBeInTheDocument();
+  });
+
+  // Check initial progress state
+  expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "0");
+
+  // Send progress event at 65%
+  act(() => {
+    progressCb?.({ loaded: 1625, total: 2500, percent: 65 });
+  });
+
+  await waitFor(() => {
+    const progressbar = screen.getByRole("progressbar");
+    expect(progressbar).toHaveAttribute("aria-valuenow", "65");
+    expect(screen.getByText("65%")).toBeInTheDocument();
+    expect(screen.getByText(/1\.6 KB \/ 2\.4 KB/i)).toBeInTheDocument();
+  });
+
+  // Finish upload
+  act(() => {
+    finishUpload?.();
+  });
+
+  await waitFor(() => {
+    expect(screen.getByText("✓ Uploaded")).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
   });
 });
 
@@ -76,3 +124,4 @@ test("associates file input with label and provides explicit id without aria-hid
   const label = container.querySelector('label[for="file-upload-input"]');
   expect(label).toBeInTheDocument();
 });
+
