@@ -45,15 +45,15 @@ Most document Q&A tools treat documents as unstructured blobs of text: they stri
 
 ## Product Workspace
 
-The DocuMind workspace is a dark-mode Next.js application designed for inspecting complex documents and verifying AI-generated answers.
+The DocuMind workspace is a dark-mode Next.js application featuring an interactive resizable split-pane layout designed for inspecting complex documents and verifying AI-generated answers.
 
 <div align="center">
 
 | Workspace View | Description | Key Capabilities |
 |---|---|---|
-| **Document Library** | Multi-file document manager with real-time status badges | Magic-byte upload validation, SHA-256 deduplication, progress streaming |
-| **Structural Preview** | Split-pane reader showing parsed Markdown and extracted tables | Table structure extraction, document metrics, multi-format export (MD, HTML, JSON) |
-| **Grounded Chat** | Conversational panel with verified citation cards | Evidence score thresholding (`>= 0.35`), deterministic refusal on no evidence, citation inspector |
+| **Document Library** | Multi-file document manager with real-time status badges | Instant search (`/` shortcut), status filter pills (`All`, `Ready`, `Processing`, `Failed`), skeleton loading placeholders, SHA-256 deduplication |
+| **Structural Preview** | Document reader showing parsed Markdown and extracted tables | Syntax-highlighted code blocks with 1-click copy, table structure extraction, document metrics, multi-format export (MD, HTML, JSON) |
+| **Grounded Chat & Shell** | Draggable split-pane panel with verified citation cards | Smooth mouse/keyboard resizable panes (`ArrowLeft`/`ArrowRight`), `localStorage` layout persistence, evidence score thresholding (`>= 0.35`), citation inspector |
 
 </div>
 
