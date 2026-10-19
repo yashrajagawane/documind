@@ -40,7 +40,6 @@ Most document Q&A tools treat documents as unstructured blobs of text: they stri
 - **Grounded Conversational Q&A** — Generates answers with Gemini 3.8 Flash bounded by strict `<DOCUMENT_EVIDENCE>` delimiters.
 - **Server-Constructed Citations** — Chunk IDs, section titles, and relevance scores are assembled by the backend from Qdrant metadata; the LLM cannot invent citations.
 - **Strict Tenant & Document Isolation** — All vector search queries enforce mandatory `user_id` and `document_id` payload filters.
-- **Durable Job Orchestration** — Background parsing jobs are tracked in PostgreSQL with atomic `lease_token` claims, exponential backoff retries, and Celery Beat lease recovery.
 
 ---
 
