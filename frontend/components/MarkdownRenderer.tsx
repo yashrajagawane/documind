@@ -3,6 +3,7 @@
 import { useMemo, useEffect, useRef } from "react";
 import DOMPurify from "isomorphic-dompurify";
 import { marked } from "marked";
+import { highlightCode } from "@/lib/highlight";
 
 interface MarkdownRendererProps {
   content: string;
@@ -48,10 +49,12 @@ export function MarkdownRenderer({
       return `<h${depth} id="sec-${slug}" class="markdown-heading" data-section="${safeSection}">${text}</h${depth}>`;
     };
 
-    // Enhance code blocks with copy-friendly markup
+    // Enhance code blocks with syntax highlighting and copy button markup
     renderer.code = ({ text, lang }) => {
       const languageClass = lang ? ` language-${lang}` : "";
-      return `<div class="code-block-wrapper"><pre class="code-block${languageClass}"><code>${text}</code></pre></div>`;
+      const displayLang = (lang || "code").toUpperCase();
+      const highlighted = highlightCode(text, lang);
+      return `<div class="code-block-wrapper"><div class="code-block-header"><span class="code-lang-label">${escapeAttribute(displayLang)}</span><button type="button" class="code-copy-btn" aria-label="Copy code block">Copy</button></div><pre class="code-block${languageClass}"><code>${highlighted}</code></pre></div>`;
     };
 
     // Enhance tables with our app's table styling
@@ -72,7 +75,8 @@ export function MarkdownRenderer({
     // Sanitize untrusted HTML to neutralize XSS attacks while preserving safe markup
     return DOMPurify.sanitize(rawHtml, {
       USE_PROFILES: { html: true },
-      ADD_ATTR: ["data-section", "target"],
+      ADD_ATTR: ["data-section", "target", "class", "type", "aria-label"],
+      ADD_TAGS: ["button", "span"],
     });
   }, [content]);
 
@@ -97,12 +101,30 @@ export function MarkdownRenderer({
     }
   }, [highlightSection]);
 
-  // Handle heading click for interactive section inspection
+  // Handle heading click and code block copy actions
   const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+
+    // Handle code block copy button
+    const copyBtn = target.closest(".code-copy-btn") as HTMLButtonElement | null;
+    if (copyBtn) {
+      const codeWrapper = copyBtn.closest(".code-block-wrapper");
+      const codeEl = codeWrapper?.querySelector("code");
+      if (codeEl?.textContent) {
+        void navigator.clipboard.writeText(codeEl.textContent);
+        const originalText = copyBtn.textContent;
+        copyBtn.textContent = "✓ Copied";
+        setTimeout(() => {
+          copyBtn.textContent = originalText ?? "Copy";
+        }, 2000);
+      }
+      return;
+    }
+
     if (!onSectionClick) return;
-    const target = (event.target as HTMLElement).closest(".markdown-heading");
-    if (target) {
-      const sectionName = target.getAttribute("data-section");
+    const headingTarget = target.closest(".markdown-heading");
+    if (headingTarget) {
+      const sectionName = headingTarget.getAttribute("data-section");
       if (sectionName) {
         onSectionClick(sectionName);
       }

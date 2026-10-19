@@ -501,6 +501,35 @@ describe("HomePage Authentication Form & Onboarding", () => {
     const previewTab = screen.getByRole("tab", { name: /Preview/i });
     expect(previewTab).toHaveAttribute("aria-selected", "true");
   });
+
+  it("Workspace layout: renders draggable resizable splitter between preview and chat panes", async () => {
+    vi.mocked(authContext.useAuth).mockReturnValue({
+      accessToken: "mock-token-xyz",
+      user: { id: "u-1", email: "user@example.com" },
+      isLoading: false,
+      signIn: vi.fn(),
+      register: vi.fn(),
+      signOut: vi.fn(),
+    });
+
+    vi.mocked(api.apiFetch).mockImplementation((path) => {
+      if (path === "/documents") {
+        return Promise.resolve([]);
+      }
+      return Promise.reject(new Error("Unknown route"));
+    });
+
+    renderWithClient(<HomePage />);
+
+    const splitter = await screen.findByRole("separator", { name: "Resize chat panel" });
+    expect(splitter).toBeInTheDocument();
+    expect(splitter).toHaveAttribute("aria-orientation", "vertical");
+    expect(splitter).toHaveAttribute("aria-valuenow", "380");
+
+    // Nudge with ArrowLeft
+    fireEvent.keyDown(splitter, { key: "ArrowLeft" });
+    expect(splitter).toHaveAttribute("aria-valuenow", "400");
+  });
 });
 
 

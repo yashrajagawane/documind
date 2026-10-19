@@ -285,7 +285,7 @@ button, input, textarea, select { font: inherit; }
    ══════════════════════════════════════════════════════════════════ */
 .workspace-shell {
   display: grid;
-  grid-template-columns: var(--sidebar-width) 1fr var(--chat-width);
+  grid-template-columns: var(--sidebar-width) 1fr 1px var(--chat-width);
   grid-template-rows: 100dvh;
   height: 100dvh;
   overflow: hidden;
@@ -380,7 +380,71 @@ button, input, textarea, select { font: inherit; }
   height: 100dvh;
   overflow: hidden;
   background: var(--background);
-  border-right: 1px solid var(--border);
+}
+
+/* ── Draggable Workspace Splitter (Between Preview and Chat) ─────── */
+.workspace-splitter {
+  width: 1px;
+  height: 100dvh;
+  background: var(--border);
+  position: relative;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+  outline: none;
+  transition: background 0.15s ease;
+  z-index: 10;
+}
+
+/* Hit target expander (12px total hit zone) */
+.workspace-splitter::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -5px;
+  right: -5px;
+  cursor: col-resize;
+  z-index: 1;
+}
+
+/* Subtle grab pill in center */
+.workspace-splitter::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 28px;
+  border-radius: 9999px;
+  background: var(--border-strong);
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+  pointer-events: none;
+}
+
+.workspace-splitter:hover,
+.workspace-splitter:focus-visible,
+.workspace-splitter.dragging {
+  background: var(--accent);
+}
+
+.workspace-splitter:hover::after,
+.workspace-splitter:focus-visible::after,
+.workspace-splitter.dragging::after {
+  opacity: 1;
+  background: var(--accent);
+}
+
+.workspace-splitter:focus-visible {
+  box-shadow: 0 0 0 2px var(--accent-subtle);
+}
+
+body.is-resizing,
+body.is-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
 }
 
 .center-header {
@@ -533,9 +597,89 @@ button, input, textarea, select { font: inherit; }
   flex-shrink: 0;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   SIDEBAR DOCUMENT LIST  (compact sidebar style)
-   ══════════════════════════════════════════════════════════════════ */
+/* ── Skeleton Shimmer Animation ─────────────────────────────────── */
+@keyframes skeletonPulse {
+  0% {
+    background-color: var(--surface-2);
+  }
+  50% {
+    background-color: var(--surface-3);
+  }
+  100% {
+    background-color: var(--surface-2);
+  }
+}
+
+.skeleton-pulse {
+  background-color: var(--surface-2);
+  animation: skeletonPulse 1.8s ease-in-out infinite;
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-pulse {
+    animation: none;
+    background-color: var(--surface-2);
+  }
+}
+
+.doc-list-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.25rem 0.25rem;
+}
+
+.doc-item-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.65rem 0.75rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+.doc-item-skeleton-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.preview-skeleton {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.preview-skeleton-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.9rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  min-height: 56px;
+}
+
+.preview-skeleton-body {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.preview-skeleton-tabs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.preview-skeleton-prose {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
 /* ── Sidebar Empty State ─────────────────────────────────────────── */
 .doc-list-empty-state {
   display: flex;
@@ -1169,12 +1313,16 @@ button, input, textarea, select { font: inherit; }
 /* Tablet (769px to 1100px): optimize column widths */
 @media (max-width: 1100px) and (min-width: 769px) {
   .workspace-shell {
-    grid-template-columns: 220px 1fr 340px;
+    grid-template-columns: 220px 1fr 1px var(--chat-width);
   }
 }
 
 /* Mobile & Narrow tablet (<=768px): tab switcher navigation */
 @media (max-width: 768px) {
+  .workspace-splitter {
+    display: none !important;
+  }
+
   .workspace-shell {
     display: flex;
     flex-direction: column;
@@ -1307,6 +1455,84 @@ button, input, textarea, select { font: inherit; }
     gap: 0.35rem;
   }
 }
+
+/* ── Markdown Code Blocks & Syntax Highlighting ─────────────────── */
+.code-block-wrapper {
+  margin: 0.9rem 0;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.code-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.75rem;
+  background: var(--surface-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.code-lang-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.code-copy-btn {
+  background: transparent;
+  border: none;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+  transition: color 0.15s, background 0.15s;
+}
+
+.code-copy-btn:hover {
+  color: var(--text-primary);
+  background: var(--surface-2);
+}
+
+.code-block {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  background: transparent;
+}
+
+.code-block code {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--text-primary);
+}
+
+/* Syntax Token Colors (Dark Theme) */
+.token-keyword  { color: #c084fc; font-weight: 600; }
+.token-string   { color: #38bdf8; }
+.token-number   { color: #fbbf24; }
+.token-boolean  { color: #34d399; font-weight: 600; }
+.token-comment  { color: #64748b; font-style: italic; }
+.token-property { color: #a5b4fc; font-weight: 600; }
+.token-builtin  { color: #67e8f9; }
+.token-variable { color: #f472b6; }
+
+/* Syntax Token Colors (Light Theme) */
+[data-theme="light"] .token-keyword  { color: #7c3aed; font-weight: 600; }
+[data-theme="light"] .token-string   { color: #0284c7; }
+[data-theme="light"] .token-number   { color: #d97706; }
+[data-theme="light"] .token-boolean  { color: #059669; font-weight: 600; }
+[data-theme="light"] .token-comment  { color: #64748b; font-style: italic; }
+[data-theme="light"] .token-property { color: #4338ca; font-weight: 600; }
+[data-theme="light"] .token-builtin  { color: #0891b2; }
+[data-theme="light"] .token-variable { color: #db2777; }
 
 /* ── Theme Toggle Button ────────────────────────────────────────── */
 .theme-toggle-btn {

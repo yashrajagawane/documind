@@ -10,6 +10,13 @@ import { DocumentList } from "@/components/DocumentList";
 import { DocumentPreview } from "@/components/DocumentPreview";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UploadZone } from "@/components/UploadZone";
+import { DocumentPreviewSkeleton } from "@/components/Skeleton";
+import {
+  WorkspaceSplitter,
+  DEFAULT_CHAT_WIDTH,
+  MIN_CHAT_WIDTH,
+  MAX_CHAT_WIDTH,
+} from "@/components/WorkspaceSplitter";
 import { apiDownload, apiFetch, apiStreamSSE, apiUploadWithProgress } from "@/lib/api";
 import type { UploadProgress } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -223,6 +230,40 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
   const [mobileTab, setMobileTab] = useState<"sidebar" | "preview" | "chat">(
     selectedDocumentId ? "preview" : "sidebar"
   );
+  const [chatWidth, setChatWidth] = useState<number>(() => {
+    if (typeof window === "undefined") return DEFAULT_CHAT_WIDTH;
+    try {
+      const saved = localStorage.getItem("documind_chat_width");
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed) && parsed >= MIN_CHAT_WIDTH && parsed <= MAX_CHAT_WIDTH) {
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignore storage errors
+    }
+    return DEFAULT_CHAT_WIDTH;
+  });
+
+  const handleChatResize = (newWidth: number) => {
+    setChatWidth(newWidth);
+    try {
+      localStorage.setItem("documind_chat_width", String(newWidth));
+    } catch {
+      // Ignore storage errors
+    }
+  };
+
+  const handleChatReset = () => {
+    setChatWidth(DEFAULT_CHAT_WIDTH);
+    try {
+      localStorage.removeItem("documind_chat_width");
+    } catch {
+      // Ignore storage errors
+    }
+  };
+
   const [globalMessage, setGlobalMessage] = useState<string | null>(null);
   /** Per-document conversation histories, keyed by document ID. */
   const [chatHistories, setChatHistories] = useState<Record<string, ChatMessage[]>>({});
@@ -254,6 +295,7 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
   /* ── 2. Active Document Preview Query with automatic caching ──── */
   const {
     data: preview = null,
+    isLoading: previewLoading,
     error: previewError,
   } = useQuery<DocumentPreviewType | null>({
     queryKey: ["document-preview", selectedDocumentId, accessToken],
@@ -560,7 +602,10 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
         Skip to main content
       </a>
 
-      <div className="workspace-shell">
+      <div
+        className="workspace-shell"
+        style={{ "--chat-width": `${chatWidth}px` } as React.CSSProperties}
+      >
         {/* ── LEFT SIDEBAR ──────────────────────────────────────── */}
         <aside
           className={`workspace-sidebar ${mobileTab === "sidebar" ? "mobile-active" : ""}`}
@@ -628,7 +673,9 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
           aria-label="Document viewer"
           tabIndex={-1}
         >
-          {preview ? (
+          {selectedDocumentId && previewLoading && !preview ? (
+            <DocumentPreviewSkeleton />
+          ) : preview ? (
             <>
               {/* Sticky header */}
               <div className="center-header">
@@ -672,6 +719,13 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
             </>
           )}
         </main>
+
+        {/* ── DRAGGABLE SPLITTER — Workspace Resizer ───────────── */}
+        <WorkspaceSplitter
+          chatWidth={chatWidth}
+          onResize={handleChatResize}
+          onReset={handleChatReset}
+        />
 
         {/* ── RIGHT PANE — Chat (Complementary Landmark) ───────── */}
         <aside

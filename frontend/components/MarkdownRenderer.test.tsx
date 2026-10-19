@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { expect, test } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { expect, test, vi } from "vitest";
 
 import { MarkdownRenderer } from "./MarkdownRenderer";
 
@@ -86,3 +86,43 @@ test("safely escapes quotes in heading data-section attributes", () => {
   expect(heading.getAttribute("data-section")).toBe('Analysis of "Q3 Revenue" Results');
   expect(heading.textContent).toContain('Analysis of "Q3 Revenue" Results');
 });
+
+test("renders code blocks with syntax token classes and language badge", () => {
+  const markdown = `
+\`\`\`python
+# Configuration loader
+def get_config():
+    return {"status": True}
+\`\`\`
+`;
+  const { container } = render(<MarkdownRenderer content={markdown} />);
+
+  expect(screen.getByText("PYTHON")).toBeInTheDocument();
+  expect(container.querySelector(".token-comment")).toHaveTextContent("# Configuration loader");
+  expect(container.querySelector(".token-keyword")).toHaveTextContent("def");
+  expect(container.querySelector(".token-boolean")).toHaveTextContent("True");
+  expect(screen.getByRole("button", { name: "Copy code block" })).toBeInTheDocument();
+});
+
+test("clicking copy button in code block writes code to clipboard and updates label", async () => {
+  const writeTextSpy = vi.fn().mockResolvedValue(undefined);
+  Object.assign(navigator, {
+    clipboard: { writeText: writeTextSpy },
+  });
+
+  const markdown = `
+\`\`\`sql
+SELECT id, title FROM documents WHERE status = 'ready';
+\`\`\`
+`;
+  render(<MarkdownRenderer content={markdown} />);
+
+  const copyBtn = screen.getByRole("button", { name: "Copy code block" });
+  expect(copyBtn).toHaveTextContent("Copy");
+
+  fireEvent.click(copyBtn);
+
+  expect(writeTextSpy).toHaveBeenCalled();
+  expect(copyBtn).toHaveTextContent("✓ Copied");
+});
+
