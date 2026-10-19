@@ -533,9 +533,89 @@ button, input, textarea, select { font: inherit; }
   flex-shrink: 0;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   SIDEBAR DOCUMENT LIST  (compact sidebar style)
-   ══════════════════════════════════════════════════════════════════ */
+/* ── Skeleton Shimmer Animation ─────────────────────────────────── */
+@keyframes skeletonPulse {
+  0% {
+    background-color: var(--surface-2);
+  }
+  50% {
+    background-color: var(--surface-3);
+  }
+  100% {
+    background-color: var(--surface-2);
+  }
+}
+
+.skeleton-pulse {
+  background-color: var(--surface-2);
+  animation: skeletonPulse 1.8s ease-in-out infinite;
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-pulse {
+    animation: none;
+    background-color: var(--surface-2);
+  }
+}
+
+.doc-list-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.25rem 0.25rem;
+}
+
+.doc-item-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.65rem 0.75rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+.doc-item-skeleton-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.preview-skeleton {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.preview-skeleton-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.9rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  min-height: 56px;
+}
+
+.preview-skeleton-body {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.preview-skeleton-tabs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.preview-skeleton-prose {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
 /* ── Sidebar Empty State ─────────────────────────────────────────── */
 .doc-list-empty-state {
   display: flex;

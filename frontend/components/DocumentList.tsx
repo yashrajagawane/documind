@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
+import { DocumentListSkeleton } from "@/components/Skeleton";
 import type { DocumentSummary } from "@/lib/types";
 
 interface DocumentListProps {
@@ -141,11 +142,7 @@ export function DocumentList({
   const cancelDelete = () => setPendingDeleteDoc(null);
 
   if (loading) {
-    return (
-      <p className="muted" style={{ padding: "0.75rem", fontSize: "0.82rem" }}>
-        Loading documents…
-      </p>
-    );
+    return <DocumentListSkeleton count={3} />;
   }
 
   if (documents.length === 0) {
