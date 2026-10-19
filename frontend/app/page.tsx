@@ -10,6 +10,7 @@ import { DocumentList } from "@/components/DocumentList";
 import { DocumentPreview } from "@/components/DocumentPreview";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UploadZone } from "@/components/UploadZone";
+import { DocumentPreviewSkeleton } from "@/components/Skeleton";
 import { apiDownload, apiFetch, apiStreamSSE, apiUploadWithProgress } from "@/lib/api";
 import type { UploadProgress } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -254,6 +255,7 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
   /* ── 2. Active Document Preview Query with automatic caching ──── */
   const {
     data: preview = null,
+    isLoading: previewLoading,
     error: previewError,
   } = useQuery<DocumentPreviewType | null>({
     queryKey: ["document-preview", selectedDocumentId, accessToken],
@@ -628,7 +630,9 @@ function DocumentWorkspace({ accessToken, userEmail, onSignOut }: Readonly<Works
           aria-label="Document viewer"
           tabIndex={-1}
         >
-          {preview ? (
+          {selectedDocumentId && previewLoading && !preview ? (
+            <DocumentPreviewSkeleton />
+          ) : preview ? (
             <>
               {/* Sticky header */}
               <div className="center-header">
