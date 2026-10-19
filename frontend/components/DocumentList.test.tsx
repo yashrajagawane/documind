@@ -192,3 +192,102 @@ test("shows disabled delete button when deletingId matches", () => {
   const deletingButton = screen.getByRole("button", { name: "Delete contract.pdf" });
   expect(deletingButton).toBeDisabled();
 });
+
+// ── Search & Filter Tests ─────────────────────────────────────────────────
+
+test("filters documents by search query", () => {
+  render(
+    <DocumentList
+      documents={mockDocuments}
+      loading={false}
+      onPreview={vi.fn()}
+      onDelete={vi.fn()}
+    />
+  );
+
+  const searchInput = screen.getByRole("searchbox", { name: /search documents/i });
+  fireEvent.change(searchInput, { target: { value: "contract" } });
+
+  expect(screen.getByText("contract.pdf")).toBeInTheDocument();
+  expect(screen.queryByText("data.xlsx")).not.toBeInTheDocument();
+
+  // Clear button appears
+  const clearBtn = screen.getByRole("button", { name: /clear search query/i });
+  fireEvent.click(clearBtn);
+
+  expect(screen.getByText("contract.pdf")).toBeInTheDocument();
+  expect(screen.getByText("data.xlsx")).toBeInTheDocument();
+});
+
+test("filters documents by status pills", () => {
+  render(
+    <DocumentList
+      documents={mockDocuments}
+      loading={false}
+      onPreview={vi.fn()}
+      onDelete={vi.fn()}
+    />
+  );
+
+  // Click "Ready" pill
+  const readyPill = screen.getByRole("button", { name: /Ready/i });
+  fireEvent.click(readyPill);
+
+  expect(screen.getByText("contract.pdf")).toBeInTheDocument();
+  expect(screen.queryByText("data.xlsx")).not.toBeInTheDocument();
+
+  // Click "Processing" pill
+  const processingPill = screen.getByRole("button", { name: /Processing/i });
+  fireEvent.click(processingPill);
+
+  expect(screen.queryByText("contract.pdf")).not.toBeInTheDocument();
+  expect(screen.getByText("data.xlsx")).toBeInTheDocument();
+
+  // Click "All" pill
+  const allPill = screen.getByRole("button", { name: /All/i });
+  fireEvent.click(allPill);
+
+  expect(screen.getByText("contract.pdf")).toBeInTheDocument();
+  expect(screen.getByText("data.xlsx")).toBeInTheDocument();
+});
+
+test("shows empty filter state and resets when no documents match", () => {
+  render(
+    <DocumentList
+      documents={mockDocuments}
+      loading={false}
+      onPreview={vi.fn()}
+      onDelete={vi.fn()}
+    />
+  );
+
+  const searchInput = screen.getByRole("searchbox", { name: /search documents/i });
+  fireEvent.change(searchInput, { target: { value: "nonexistent-doc-name" } });
+
+  expect(screen.getByText(/No documents match your filter/i)).toBeInTheDocument();
+  expect(screen.queryByText("contract.pdf")).not.toBeInTheDocument();
+
+  const resetBtn = screen.getByRole("button", { name: /reset filters/i });
+  fireEvent.click(resetBtn);
+
+  expect(screen.getByText("contract.pdf")).toBeInTheDocument();
+  expect(screen.getByText("data.xlsx")).toBeInTheDocument();
+});
+
+test("pressing '/' focuses the search input", () => {
+  render(
+    <DocumentList
+      documents={mockDocuments}
+      loading={false}
+      onPreview={vi.fn()}
+      onDelete={vi.fn()}
+    />
+  );
+
+  const searchInput = screen.getByRole("searchbox", { name: /search documents/i });
+  expect(document.activeElement).not.toBe(searchInput);
+
+  fireEvent.keyDown(window, { key: "/" });
+  expect(document.activeElement).toBe(searchInput);
+});
+

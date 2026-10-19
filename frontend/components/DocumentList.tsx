@@ -111,6 +111,25 @@ export function DocumentList({
   onRetry,
 }: Readonly<DocumentListProps>) {
   const [pendingDeleteDoc, setPendingDeleteDoc] = useState<DocumentSummary | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "ready" | "processing" | "failed">("all");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Keyboard shortcut: '/' focuses the search input when not typing in form controls
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key === "/" &&
+        !["INPUT", "TEXTAREA"].includes((event.target as HTMLElement)?.tagName)
+      ) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const requestDelete = (doc: DocumentSummary) => setPendingDeleteDoc(doc);
 
@@ -154,6 +173,26 @@ export function DocumentList({
     );
   }
 
+  // Filter calculations
+  const counts = {
+    all: documents.length,
+    ready: documents.filter((d) => d.status === "ready").length,
+    processing: documents.filter((d) => d.status !== "ready" && d.status !== "failed").length,
+    failed: documents.filter((d) => d.status === "failed").length,
+  };
+
+  const filteredDocuments = documents.filter((doc) => {
+    if (statusFilter === "ready" && doc.status !== "ready") return false;
+    if (statusFilter === "processing" && (doc.status === "ready" || doc.status === "failed")) return false;
+    if (statusFilter === "failed" && doc.status !== "failed") return false;
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      return doc.original_name.toLowerCase().includes(q);
+    }
+    return true;
+  });
+
   return (
     <>
       {pendingDeleteDoc && (
@@ -164,74 +203,168 @@ export function DocumentList({
         />
       )}
 
-      <ul className="document-list" aria-label="Uploaded documents">
-        {documents.map((doc) => {
-          const isSelected = selectedDocumentId === doc.id;
-          const isReady = doc.status === "ready";
-          const isFailed = doc.status === "failed";
-          const isDeleting = deletingId === doc.id;
-
-          return (
-            <li
-              key={doc.id}
-              className={isSelected ? "selected" : ""}
-              aria-busy={isDeleting}
-              aria-current={isSelected ? "true" : undefined}
+      {/* ── Document Search and Filter Bar ────────────────── */}
+      <div className="doc-search-container" role="search" aria-label="Filter documents">
+        <div className="doc-search-input-wrapper">
+          <span className="doc-search-icon" aria-hidden="true">
+            🔍
+          </span>
+          <input
+            ref={searchInputRef}
+            type="search"
+            className="doc-search-input"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setSearchQuery("");
+                searchInputRef.current?.blur();
+              }
+            }}
+            placeholder="Search documents… ('/' to focus)"
+            aria-label="Search documents by name"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              className="doc-search-clear-btn"
+              onClick={() => {
+                setSearchQuery("");
+                searchInputRef.current?.focus();
+              }}
+              aria-label="Clear search query"
             >
-              {/* Document name — clicking the row previews it */}
-              <button
-                type="button"
-                className="doc-item-name"
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: isReady ? "pointer" : "default",
-                  textAlign: "left",
-                  padding: 0,
-                  color: isReady ? "var(--text-primary)" : "var(--text-secondary)",
-                  width: "100%",
-                }}
-                disabled={!isReady}
-                onClick={() => isReady && onPreview(doc.id)}
-                title={doc.original_name}
-              >
-                {doc.original_name}
-              </button>
+              ✕
+            </button>
+          )}
+        </div>
 
-              {/* Status chip + action buttons on the same row */}
-              <div className="doc-item-row">
-                <StatusBadge
-                  status={doc.status}
-                  stage={doc.processing_stage}
-                  progress={doc.processing_progress}
-                />
-                <span className="document-actions">
-                  {isFailed && onRetry && (
+        <div className="doc-filter-pills" role="group" aria-label="Filter documents by status">
+          <button
+            type="button"
+            className={`doc-filter-pill ${statusFilter === "all" ? "active" : ""}`}
+            onClick={() => setStatusFilter("all")}
+            aria-pressed={statusFilter === "all"}
+          >
+            All ({counts.all})
+          </button>
+          {counts.ready > 0 && (
+            <button
+              type="button"
+              className={`doc-filter-pill ${statusFilter === "ready" ? "active" : ""}`}
+              onClick={() => setStatusFilter("ready")}
+              aria-pressed={statusFilter === "ready"}
+            >
+              Ready ({counts.ready})
+            </button>
+          )}
+          {counts.processing > 0 && (
+            <button
+              type="button"
+              className={`doc-filter-pill ${statusFilter === "processing" ? "active" : ""}`}
+              onClick={() => setStatusFilter("processing")}
+              aria-pressed={statusFilter === "processing"}
+            >
+              Processing ({counts.processing})
+            </button>
+          )}
+          {counts.failed > 0 && (
+            <button
+              type="button"
+              className={`doc-filter-pill ${statusFilter === "failed" ? "active" : ""}`}
+              onClick={() => setStatusFilter("failed")}
+              aria-pressed={statusFilter === "failed"}
+            >
+              Failed ({counts.failed})
+            </button>
+          )}
+        </div>
+      </div>
+
+      {filteredDocuments.length === 0 ? (
+        <div className="doc-filter-empty">
+          <p className="doc-filter-empty-text">No documents match your filter.</p>
+          <button
+            type="button"
+            className="link-button doc-filter-reset-btn"
+            onClick={() => {
+              setSearchQuery("");
+              setStatusFilter("all");
+            }}
+          >
+            Reset filters
+          </button>
+        </div>
+      ) : (
+        <ul className="document-list" aria-label="Uploaded documents">
+          {filteredDocuments.map((doc) => {
+            const isSelected = selectedDocumentId === doc.id;
+            const isReady = doc.status === "ready";
+            const isFailed = doc.status === "failed";
+            const isDeleting = deletingId === doc.id;
+
+            return (
+              <li
+                key={doc.id}
+                className={isSelected ? "selected" : ""}
+                aria-busy={isDeleting}
+                aria-current={isSelected ? "true" : undefined}
+              >
+                {/* Document name — clicking the row previews it */}
+                <button
+                  type="button"
+                  className="doc-item-name"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: isReady ? "pointer" : "default",
+                    textAlign: "left",
+                    padding: 0,
+                    color: isReady ? "var(--text-primary)" : "var(--text-secondary)",
+                    width: "100%",
+                  }}
+                  disabled={!isReady}
+                  onClick={() => isReady && onPreview(doc.id)}
+                  title={doc.original_name}
+                >
+                  {doc.original_name}
+                </button>
+
+                {/* Status chip + action buttons on the same row */}
+                <div className="doc-item-row">
+                  <StatusBadge
+                    status={doc.status}
+                    stage={doc.processing_stage}
+                    progress={doc.processing_progress}
+                  />
+                  <span className="document-actions">
+                    {isFailed && onRetry && (
+                      <button
+                        className="link-button"
+                        type="button"
+                        onClick={() => onRetry(doc.id)}
+                        style={{ color: "#fde68a" }}
+                        aria-label={`Retry processing ${doc.original_name}`}
+                      >
+                        Retry
+                      </button>
+                    )}
                     <button
-                      className="link-button"
+                      className="link-button danger"
                       type="button"
-                      onClick={() => onRetry(doc.id)}
-                      style={{ color: "#fde68a" }}
-                      aria-label={`Retry processing ${doc.original_name}`}
+                      disabled={isDeleting}
+                      aria-label={`Delete ${doc.original_name}`}
+                      onClick={() => requestDelete(doc)}
                     >
-                      Retry
+                      {isDeleting ? "…" : "Del"}
                     </button>
-                  )}
-                  <button
-                    className="link-button danger"
-                    type="button"
-                    disabled={isDeleting}
-                    aria-label={`Delete ${doc.original_name}`}
-                    onClick={() => requestDelete(doc)}
-                  >
-                    {isDeleting ? "…" : "Del"}
-                  </button>
-                </span>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+                  </span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </>
   );
 }
