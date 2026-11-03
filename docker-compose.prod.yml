@@ -11,16 +11,22 @@
 services:
   postgres:
     ports: !reset []
+    networks:
+      - data
     restart: unless-stopped
 
   redis:
     restart: unless-stopped
+    networks:
+      - data
 
   qdrant:
     ports: !reset []
     restart: unless-stopped
     environment:
       QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?Set QDRANT_API_KEY in .env.production}
+    networks:
+      - data
 
   backend:
     env_file: ${DOCUMIND_ENV_FILE:-.env.production}
@@ -34,16 +40,23 @@ services:
       timeout: 5s
       retries: 3
       start_period: 45s
+    networks:
+      - edge
+      - data
 
   worker:
     env_file: ${DOCUMIND_ENV_FILE:-.env.production}
     restart: unless-stopped
     init: true
+    networks:
+      - data
 
   scheduler:
     env_file: ${DOCUMIND_ENV_FILE:-.env.production}
     restart: unless-stopped
     init: true
+    networks:
+      - data
 
   frontend:
     env_file: ${DOCUMIND_ENV_FILE:-.env.production}
@@ -57,6 +70,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
+    networks:
+      - edge
 
   proxy:
     image: caddy:2.10-alpine
@@ -76,6 +91,14 @@ services:
       - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    networks:
+      - edge
+
+networks:
+  edge:
+  data:
+    # Private from inbound host traffic while retaining outbound access for
+    # Gemini, model downloads, and the private S3-compatible endpoint.
 
 volumes:
   caddy_data:
