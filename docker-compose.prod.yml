@@ -33,6 +33,7 @@ services:
     ports: !reset []
     restart: unless-stopped
     init: true
+    stop_grace_period: 40s
     healthcheck:
       test:
         ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health', timeout=3)"]
@@ -48,6 +49,7 @@ services:
     env_file: ${DOCUMIND_ENV_FILE:-.env.production}
     restart: unless-stopped
     init: true
+    stop_grace_period: 2m
     networks:
       - data
 
@@ -55,6 +57,7 @@ services:
     env_file: ${DOCUMIND_ENV_FILE:-.env.production}
     restart: unless-stopped
     init: true
+    stop_grace_period: 1m
     networks:
       - data
 
@@ -63,6 +66,7 @@ services:
     ports: !reset []
     restart: unless-stopped
     init: true
+    stop_grace_period: 30s
     healthcheck:
       test:
         ["CMD", "node", "-e", "fetch('http://localhost:3000').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
