@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 from app.core.config import Settings
 from app.core.security import create_access_token, decode_access_token, hash_password, verify_password
 from app.main import app
+from app.middleware.security import SecurityHeadersMiddleware
 
 
 # ---------------------------------------------------------------------------
@@ -111,6 +112,33 @@ def test_security_headers_present_on_404_response() -> None:
         response = client.get("/api/v1/nonexistent-route")
     assert response.headers.get("X-Content-Type-Options") == "nosniff"
     assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_security_headers_include_hsts_only_in_production(monkeypatch) -> None:
+    production = Settings(
+        environment="production",
+        jwt_secret_key="a-production-secret-that-is-longer-than-32-characters",
+        refresh_cookie_secure=True,
+        cors_origins="https://app.example.com",
+        storage_backend="s3",
+        s3_bucket="documind-private-artifacts",
+        qdrant_api_key="qdrant-service-api-key",
+    )
+    monkeypatch.setattr("app.middleware.security.get_settings", lambda: production)
+    middleware = SecurityHeadersMiddleware(app)
+
+    async def call_next(_):
+        from starlette.responses import Response
+
+        return Response()
+
+    from starlette.requests import Request
+
+    request = Request({"type": "http", "method": "GET", "path": "/", "headers": []})
+    response = await middleware.dispatch(request, call_next)
+
+    assert response.headers["Strict-Transport-Security"] == "max-age=31536000; includeSubDomains"
 
 
 # ---------------------------------------------------------------------------
