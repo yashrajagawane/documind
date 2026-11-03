@@ -95,10 +95,25 @@ class Settings(BaseSettings):
         if bool(self.s3_access_key_id) != bool(self.s3_secret_access_key):
             raise ValueError("Configure both S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY, or neither.")
         if self.environment.lower() != "development":
-            if self.jwt_secret_key == "dev-only-change-this-secret":
-                raise ValueError("JWT_SECRET_KEY must be changed outside development.")
+            unsafe_secret_values = {
+                "dev-only-change-this-secret",
+                "replace-with-a-long-random-secret",
+                "replace-with-a-random-64-character-secret",
+            }
+            if len(self.jwt_secret_key) < 32 or self.jwt_secret_key in unsafe_secret_values:
+                raise ValueError(
+                    "JWT_SECRET_KEY must be a unique secret of at least 32 characters outside development."
+                )
             if not self.refresh_cookie_secure:
                 raise ValueError("REFRESH_COOKIE_SECURE must be true outside development.")
+            if not self.cors_origins or "*" in self.cors_origins:
+                raise ValueError("CORS_ORIGINS must be a non-wildcard allowlist outside development.")
+            if any(not origin.startswith("https://") for origin in self.cors_origins):
+                raise ValueError("CORS_ORIGINS must use HTTPS outside development.")
+            if self.storage_backend != "s3":
+                raise ValueError("STORAGE_BACKEND must be s3 outside development.")
+            if not self.qdrant_api_key:
+                raise ValueError("QDRANT_API_KEY is required outside development.")
         if self.job_queue_backend == "celery" and not self.celery_broker_url:
             raise ValueError("CELERY_BROKER_URL is required when JOB_QUEUE_BACKEND=celery.")
         if self.storage_backend == "s3" and not self.s3_bucket:
