@@ -1,6 +1,6 @@
 # DocuMind Deployment Completion Plan
 
-**Status:** Phase 1 repository baseline implemented; live qualification pending
+**Status:** Phase 0 decision recorded; Phase 1 repository baseline implemented; live qualification pending
 **Owner:** Project maintainer  
 **Scope:** Production deployment qualification for the current V1 application  
 **Baseline revision:** `91e9910`  
@@ -68,35 +68,40 @@ rebuildable, and object storage remains the authority for uploaded artifacts.
 
 ### Phase 0 — Deployment Decision and Project Controls
 
+> **Decision recorded (2026-11-03):** The initial deployment uses one Linux VM
+> per environment, Docker Compose, Caddy HTTPS ingress, private Compose data
+> services, and a private S3-compatible bucket. Staging and production are
+> isolated. Initial recovery objectives are 24-hour RPO and 8-hour RTO. See
+> [DEPLOYMENT-DECISION.md](DEPLOYMENT-DECISION.md). Provider, region, domain,
+> budget cap, and account credentials remain provisioning inputs; no resources
+> have been created.
+
 **Goal:** Select one supported production target before implementing provider
 specific configuration.
 
 **Actions**
 
-1. Choose the primary production topology:
-   - **Recommended:** one VM or container platform running the complete Compose
-     stack, with managed PostgreSQL and object storage considered as later
-     upgrades; or
-   - a provider-specific split stack with explicit equivalents for API, worker,
-     scheduler, Redis, PostgreSQL, Qdrant, object storage, and ingress.
-2. Record the provider, regions, budget owner, public domain, DNS owner, and
-   recovery-point/recovery-time objectives in a short deployment decision record.
-3. Confirm data classification, privacy notice, account-support contact, and
+1. Use the approved initial topology recorded in `DEPLOYMENT-DECISION.md`.
+2. Enter the actual provider, regions, budget ceiling, public domain, DNS owner,
+   and access owners in the private environment inventory before provisioning.
+3. Confirm the privacy notice, account-support contact, and
    whether public account registration is permitted at launch.
-4. Create separate **staging** and **production** environments. They must not
+4. Provision separate **staging** and **production** environments. They must not
    share databases, buckets, Qdrant collections, Redis instances, or secrets.
 5. Retire the current zero-cost public-hosting instructions or relabel them as
    an explicitly non-production demo path.
 
 **Deliverables**
 
-- Approved deployment decision record.
-- Environment inventory and access-owner list.
-- Production domain and staging domain.
+- Approved deployment decision record with topology, data classification,
+  isolation, and initial recovery objectives.
+- Private environment inventory and access-owner list populated during provisioning.
+- Production and staging domains provisioned from the maintainer-owned domain.
 - Updated deployment documentation with a single supported path.
 
-**Exit gate:** A named operator can provision every required service without
-inventing architecture during the release.
+**Repository decision gate:** Complete; the initial architecture and operating
+defaults are recorded. **Provisioning gate:** Pending provider, domain, budget,
+and credentials supplied by the maintainer.
 
 ### Phase 1 — Production Packaging, Networking, and Security
 

@@ -214,6 +214,7 @@ Detailed implementation guides, design records, and API contracts are available 
 | [API Reference](docs/API.md) | Complete endpoint catalog, request/response JSON payloads, and error envelopes |
 | [Configuration Reference](docs/CONFIGURATION.md) | Full list of environment variables, defaults, and production requirements |
 | [Production Deployment Runbook](docs/DEPLOYMENT-PRODUCTION.md) | Supported single-host deployment, TLS, private network, and release procedure |
+| [Deployment Decision Record](docs/DEPLOYMENT-DECISION.md) | Approved initial topology, environment defaults, recovery targets, and provisioning inputs |
 | [Free Demo Guide (Zero-Cost)](docs/DEPLOYMENT-FREE-GUIDE.md) | Portfolio/demo guidance only; not suitable for private production documents |
 | [Architecture Guide](docs/ARCHITECTURE.md) | Component boundaries, ingestion flows, and service layer architecture |
 | [Architecture Decisions (ADRs)](docs/ARCHITECTURE-DECISIONS.md) | Accepted ADRs (ADR-001 through ADR-008) governing technology and design choices |
