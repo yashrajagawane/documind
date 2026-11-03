@@ -227,6 +227,8 @@ Detailed implementation guides, design records, and API contracts are available 
 
 DocuMind is an active, production-grade open-source project. In the spirit of engineering transparency, please note these current limitations:
 
+- **Deployment Qualification** — Phase 0 decisions and the Phase 1 repository baseline are complete; live staging qualification, provider-specific firewall/storage validation, and restore rehearsal remain outstanding. See the [deployment decision](docs/DEPLOYMENT-DECISION.md) and [production runbook](docs/DEPLOYMENT-PRODUCTION.md).
+
 - **S3 Storage Live Qualification** — The S3 storage adapter is fully implemented with Boto3 and AES-256 SSE, but requires qualification in your target production environment.
 - **Worker Memory Footprint** — IBM Docling layout models require at least 4 GB of RAM allocated to the Celery worker container during intensive parsing tasks.
 - **Monitoring Dashboards** — Prometheus metrics are exported at `/api/v1/metrics`, but production Grafana dashboards and alerting rules are deployment-specific.

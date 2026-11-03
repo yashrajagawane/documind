@@ -1,6 +1,6 @@
 # DocuMind Deployment Completion Plan
 
-**Status:** Phase 0 decision recorded; Phase 1 repository baseline implemented; live qualification pending
+**Status:** Phase 0 decision recorded; Phase 1 repository implementation complete; live qualification pending
 **Owner:** Project maintainer  
 **Scope:** Production deployment qualification for the current V1 application  
 **Baseline revision:** `91e9910`  
@@ -62,9 +62,10 @@ rebuildable, and object storage remains the authority for uploaded artifacts.
 > **Implementation note (2026-11-03):** The repository now includes a portable
 > production Compose overlay, Caddy TLS ingress, private data-service ports,
 > production environment validation, S3-only production settings, Qdrant
-> authentication, HTTPS security headers, and an operator runbook. Provider
-> provisioning and the live Phase 1 exit gate still require the chosen host,
-> domain, bucket, and secrets.
+> authentication, network separation, non-root application containers, role
+> health checks, graceful shutdown, HTTPS security headers, and an operator
+> runbook. The Phase 1 repository implementation is complete; live qualification
+> still requires the chosen host, domain, bucket, secrets, and staging deployment.
 
 ### Phase 0 — Deployment Decision and Project Controls
 

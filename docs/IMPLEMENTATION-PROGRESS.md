@@ -148,3 +148,9 @@ Last Updated: 2026-10-09
 - [ ] Demo deployment
 - [ ] Production deployment
 - [-] Backup/restore rehearsal (runbook defined; live rehearsal pending)
+
+## Deployment completion plan status
+
+- [x] Phase 0 repository decision: single Linux VM per environment, Docker Compose, Caddy HTTPS ingress, private data services, private S3-compatible storage, and initial 24-hour RPO / 8-hour RTO recorded in `docs/DEPLOYMENT-DECISION.md`.
+- [x] Phase 1 repository baseline: production Compose overlay, segmented edge/data networks, non-root app containers, Qdrant authentication, secure production settings validator, service health/restart/shutdown controls, HTTPS ingress, and production runbook are present.
+- [ ] Phase 1 live qualification: provider, host, domain, bucket, and production secrets have not been provisioned; do not treat this repository status as production deployment approval.

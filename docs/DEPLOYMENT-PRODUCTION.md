@@ -52,6 +52,23 @@ python scripts/validate_production_config.py --env-file .env.production
 The command rejects missing secrets, template values, wildcard/non-HTTPS CORS,
 local storage, public Qdrant URLs, and inconsistent public API origins.
 
+For an initial host firewall using UFW, allow SSH from trusted operator IPs
+first, then allow only the public ingress ports:
+
+```bash
+sudo ufw allow from <trusted-operator-cidr> to any port 22 proto tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw enable
+sudo ufw status verbose
+```
+
+Replace the SSH CIDR before enabling the firewall and confirm your provider
+firewall matches these rules. Do not add rules for ports 3000, 5432, 6333,
+6379, or 8000.
+
 ## 2. Build and Start
 
 Use the base file plus the production overlay. Keep this exact command in the
@@ -68,6 +85,11 @@ docker compose --env-file .env.production \
 The API starts only after PostgreSQL is healthy and applies forward migrations
 before serving requests. Caddy is the only public service; it terminates TLS and
 routes `/api/*` to the API and all other paths to the frontend.
+
+The production overlay places proxy, frontend, and API on the edge network.
+PostgreSQL, Redis, Qdrant, worker, and scheduler use the data network; only API
+joins both networks. Data services have no published host ports. Worker health
+uses Celery's worker ping, while scheduler health checks its Beat process.
 
 Inspect role health immediately:
 
@@ -124,7 +146,9 @@ If an application check fails after a release:
 
 - The overlay supplies restart policies and API/frontend health checks, but
   runtime health and disaster-recovery evidence must be captured on the chosen
-  host before production approval.
+  host before production approval. PostgreSQL and Redis have native service
+  health checks; Qdrant currently relies on API calls failing safely and needs
+  provider/host monitoring for availability alerts.
 - S3 bucket policy, encryption, versioning, deletion, and restore behavior are
   provider-specific and require a live staging qualification.
 - This runbook establishes a production-ready deployment baseline; it does not
