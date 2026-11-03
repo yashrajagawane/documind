@@ -50,6 +50,13 @@ services:
     restart: unless-stopped
     init: true
     stop_grace_period: 2m
+    healthcheck:
+      test:
+        ["CMD-SHELL", "celery -A app.jobs.celery_app:celery_app inspect ping --timeout=5 | grep -q pong"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
     networks:
       - data
 
@@ -58,6 +65,14 @@ services:
     restart: unless-stopped
     init: true
     stop_grace_period: 1m
+    command: ["celery", "-A", "app.jobs.celery_app:celery_app", "beat", "--loglevel=INFO", "--pidfile=/tmp/celerybeat.pid"]
+    healthcheck:
+      test:
+        ["CMD", "python", "-c", "import os,pathlib,sys; p=pathlib.Path('/tmp/celerybeat.pid'); sys.exit(0 if p.exists() and os.path.exists(f'/proc/{p.read_text().strip()}') else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     networks:
       - data
 
