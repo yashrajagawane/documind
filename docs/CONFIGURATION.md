@@ -14,8 +14,8 @@ cp .env.example .env
 
 | Variable | Default | Required | Description |
 |---|---|---|---|
-| `ENVIRONMENT` | `development` | Yes | Runtime environment (`development`, `staging`, `production`). In `production`, secret strengths and origins are strictly enforced. |
-| `CORS_ORIGINS` | `http://localhost:3000` | Yes | Comma-separated list of allowed browser origins for cross-origin requests. |
+| `ENVIRONMENT` | `development` | Yes | Runtime environment (`development`, `staging`, `production`). Non-development environments enforce secure refresh cookies, a 32+ character JWT secret, HTTPS non-wildcard CORS, S3 storage, and a Qdrant API key. |
+| `CORS_ORIGINS` | `http://localhost:3000` | Yes | Comma-separated browser-origin allowlist. Production must contain only the exact HTTPS frontend origin; `*` is rejected. |
 | `DATABASE_URL` | *(see .env.example)* | Yes | Async PostgreSQL connection string (`postgresql+asyncpg://user:pass@host:5432/db`). |
 | `POSTGRES_DB` | `documind` | Yes | PostgreSQL database name used by Docker Compose. |
 | `POSTGRES_USER` | `documind` | Yes | PostgreSQL username used by Docker Compose. |
@@ -29,7 +29,7 @@ cp .env.example .env
 | `CELERY_BROKER_URL` | `redis://redis:6379/0` | If Celery | Redis connection URL for Celery broker tasks. |
 | `RATE_LIMIT_BACKEND` | `redis` | No | Sliding-window rate limiter storage: `redis` (multi-replica distributed) or `memory`. |
 | `RATE_LIMIT_REDIS_URL` | `redis://redis:6379/1` | If Redis | Dedicated Redis database index for atomic Lua sliding-window rate tracking. |
-| `STORAGE_BACKEND` | `local` | No | Private file storage engine: `local` (filesystem volume) or `s3` (S3-compatible bucket). |
+| `STORAGE_BACKEND` | `local` | No | Private file storage engine: `local` (filesystem volume, development only) or `s3` (required for production). |
 | `STORAGE_DIR` | `storage` | If local | Directory path for local file storage volume. |
 | `S3_BUCKET` | — | If S3 | Target AWS S3 or MinIO bucket name. |
 | `S3_REGION` | `us-east-1` | If S3 | AWS region for target S3 bucket. |
@@ -41,7 +41,7 @@ cp .env.example .env
 | `MAX_UPLOAD_BYTES` | `26214400` (25 MB) | No | Maximum permitted file upload size in bytes. |
 | `ALLOWED_UPLOAD_EXTENSIONS` | `.pdf,.docx,.xlsx,.pptx,.txt,.csv,.md` | No | Comma-separated list of permitted file extensions. |
 | `QDRANT_URL` | `http://qdrant:6333` | Yes | HTTP endpoint for Qdrant vector database. |
-| `QDRANT_API_KEY` | — | If auth | Optional API key for managed Qdrant Cloud clusters. |
+| `QDRANT_API_KEY` | — | Production | API key for Qdrant. Required outside development, including for the private Compose Qdrant service. |
 | `QDRANT_COLLECTION` | `documind_chunks` | No | Name of the shared vector collection in Qdrant. |
 | `EMBEDDING_MODEL` | `sentence-transformers/all-MiniLM-L6-v2` | No | Hugging Face transformer model used for local vector embeddings. |
 | `EMBEDDING_DIMENSIONS` | `384` | No | Vector dimensional size (must match embedding model specification). |

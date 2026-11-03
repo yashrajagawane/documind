@@ -1,6 +1,6 @@
 # DocuMind Deployment Completion Plan
 
-**Status:** Proposed  
+**Status:** Phase 1 repository baseline implemented; live qualification pending
 **Owner:** Project maintainer  
 **Scope:** Production deployment qualification for the current V1 application  
 **Baseline revision:** `91e9910`  
@@ -58,6 +58,13 @@ It also follows the project ADRs: PostgreSQL remains canonical, Qdrant remains
 rebuildable, and object storage remains the authority for uploaded artifacts.
 
 ## 4. Phase Plan
+
+> **Implementation note (2026-11-03):** The repository now includes a portable
+> production Compose overlay, Caddy TLS ingress, private data-service ports,
+> production environment validation, S3-only production settings, Qdrant
+> authentication, HTTPS security headers, and an operator runbook. Provider
+> provisioning and the live Phase 1 exit gate still require the chosen host,
+> domain, bucket, and secrets.
 
 ### Phase 0 — Deployment Decision and Project Controls
 

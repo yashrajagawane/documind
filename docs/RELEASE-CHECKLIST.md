@@ -9,14 +9,16 @@ This checklist is required before calling a deployment demo-ready. A green local
 - [ ] Set `GEMINI_API_KEY` only in the deployment secret store; never commit it.
 - [ ] Confirm CORS contains only the deployed frontend origin.
 - [ ] Review the current commit and migration head before rollout.
+- [ ] Run `python scripts/validate_production_config.py --env-file .env.production`.
+- [ ] Confirm Docker publishes only proxy ports `80` and `443`; PostgreSQL, Redis, Qdrant, API, and frontend remain private.
 
 ## Deploy and smoke test
 
 ```powershell
-docker compose up --build -d
-docker compose ps
-python scripts/smoke_test.py --base-url http://localhost:8000
-python scripts/smoke_test.py --base-url http://localhost:8000 --email smoke@example.test --password "use-a-12-character-test-password"
+docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml ps
+python scripts/smoke_test.py --base-url https://YOUR_DOMAIN
+python scripts/smoke_test.py --base-url https://YOUR_DOMAIN --email smoke@example.test --password "use-a-12-character-test-password"
 ```
 
 - [ ] `/api/v1/health` returns healthy.

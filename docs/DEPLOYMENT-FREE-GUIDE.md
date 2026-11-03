@@ -1,5 +1,13 @@
 # DocuMind — Complete Zero-Cost Deployment Guide (₹0 / $0 Forever)
 
+> [!WARNING]
+> This guide is for a disposable portfolio demo only. It is not a supported
+> production deployment: free compute/storage limits can suspend or lose state,
+> and the documented topology does not satisfy DocuMind's production worker,
+> persistence, and recovery requirements. Use
+> [DEPLOYMENT-PRODUCTION.md](DEPLOYMENT-PRODUCTION.md) for private documents or
+> any service with uptime and durability expectations.
+
 > **Audience:** Developers, students, and engineers looking to host DocuMind completely free of charge without entering any credit card, without free-trial expiration worries, and without surprise billing.
 
 ---
