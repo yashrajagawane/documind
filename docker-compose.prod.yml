@@ -1,0 +1,82 @@
+# Production overlay for a single-host deployment.
+#
+# Usage:
+#   cp .env.production.example .env.production
+#   # replace every placeholder with a real secret/domain
+#   docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# The base Compose file remains intentionally convenient for local development.
+# This overlay removes public data-service ports and adds the HTTPS edge proxy.
+
+services:
+  postgres:
+    ports: !reset []
+    restart: unless-stopped
+
+  redis:
+    restart: unless-stopped
+
+  qdrant:
+    ports: !reset []
+    restart: unless-stopped
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?Set QDRANT_API_KEY in .env.production}
+
+  backend:
+    env_file: ${DOCUMIND_ENV_FILE:-.env.production}
+    ports: !reset []
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test:
+        ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+
+  worker:
+    env_file: ${DOCUMIND_ENV_FILE:-.env.production}
+    restart: unless-stopped
+    init: true
+
+  scheduler:
+    env_file: ${DOCUMIND_ENV_FILE:-.env.production}
+    restart: unless-stopped
+    init: true
+
+  frontend:
+    env_file: ${DOCUMIND_ENV_FILE:-.env.production}
+    ports: !reset []
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test:
+        ["CMD", "node", "-e", "fetch('http://localhost:3000').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  proxy:
+    image: caddy:2.10-alpine
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    environment:
+      CADDY_DOMAIN: ${CADDY_DOMAIN:?Set CADDY_DOMAIN in .env.production}
+      CADDY_EMAIL: ${CADDY_EMAIL:?Set CADDY_EMAIL in .env.production}
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: unless-stopped
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

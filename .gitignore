@@ -17,6 +17,7 @@ out/
 .env
 .env.*
 !.env.example
+!.env.production.example
 
 # Local runtime data
 storage/*

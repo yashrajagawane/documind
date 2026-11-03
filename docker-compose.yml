@@ -17,7 +17,9 @@ services:
 
   backend:
     build: ./backend
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     depends_on:
       postgres:
         condition: service_healthy
@@ -33,7 +35,9 @@ services:
 
   worker:
     build: ./backend
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,7 +51,9 @@ services:
 
   scheduler:
     build: ./backend
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     depends_on:
       postgres:
         condition: service_healthy
@@ -60,7 +66,9 @@ services:
       context: ./frontend
       args:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000/api/v1}
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     depends_on:
       - backend
     ports:
