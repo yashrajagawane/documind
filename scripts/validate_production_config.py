@@ -61,8 +61,18 @@ def validate(values: dict[str, str]) -> None:
         raise ValueError(f"Replace placeholder values: {', '.join(sorted(placeholders))}.")
     if values.get("STORAGE_BACKEND") != "s3":
         raise ValueError("STORAGE_BACKEND must be s3 for production.")
+    if values.get("JOB_QUEUE_BACKEND") != "celery":
+        raise ValueError("JOB_QUEUE_BACKEND must be celery for production.")
+    if values.get("RATE_LIMIT_BACKEND") != "redis":
+        raise ValueError("RATE_LIMIT_BACKEND must be redis for production.")
+    if values.get("REFRESH_COOKIE_SECURE", "").lower() != "true":
+        raise ValueError("REFRESH_COOKIE_SECURE must be true for production.")
+    if values.get("POSTGRES_USER") != "documind" or values.get("POSTGRES_DB") != "documind":
+        raise ValueError("POSTGRES_USER and POSTGRES_DB must match the Compose service defaults.")
     if values.get("QDRANT_URL") != "http://qdrant:6333":
         raise ValueError("QDRANT_URL must target the private Compose service.")
+    if values.get("CADDY_DOMAIN", "").startswith(("http://", "https://")):
+        raise ValueError("CADDY_DOMAIN must be a hostname without a URL scheme.")
     if values.get("NEXT_PUBLIC_API_BASE_URL") != f"https://{values['CADDY_DOMAIN']}/api/v1":
         raise ValueError("NEXT_PUBLIC_API_BASE_URL must use the public HTTPS domain.")
     if values.get("CORS_ORIGINS") != f"https://{values['CADDY_DOMAIN']}":
