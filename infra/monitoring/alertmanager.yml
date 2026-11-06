@@ -1,0 +1,11 @@
+route:
+  receiver: documind-operator
+  group_by: [alertname, severity]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  # Configure an email, chat, or webhook receiver here before relying on
+  # notifications. Until configured, alerts remain visible in Alertmanager.
+  - name: documind-operator

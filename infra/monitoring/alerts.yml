@@ -1,0 +1,47 @@
+groups:
+  - name: documind-availability
+    rules:
+      - alert: DocuMindMetricsTargetDown
+        expr: up{job="documind-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: DocuMind API metrics target is unavailable
+          description: Prometheus has failed to scrape the protected API metrics endpoint for more than two minutes.
+
+      - alert: DocuMindQueueBacklog
+        expr: documind_processing_queue_oldest_age_seconds > 900
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Oldest queued document job is over 15 minutes old
+          description: Check worker health, Redis delivery, and processing logs.
+
+      - alert: DocuMindProcessingFailures
+        expr: documind_processing_jobs{status="failed"} > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Failed document processing jobs are present
+          description: Inspect job errors and retry only after identifying the cause.
+
+      - alert: DocuMindRateLimitStoreErrors
+        expr: increase(documind_rate_limit_backend_errors_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Rate limit Redis errors detected
+          description: Requests may be rejected fail-closed while the rate limit store is unavailable.
+
+      - alert: DocuMindMetricsDatabaseErrors
+        expr: increase(documind_metrics_database_errors_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Metrics endpoint cannot query PostgreSQL
+          description: Check database availability and API logs.

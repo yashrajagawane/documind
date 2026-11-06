@@ -155,6 +155,19 @@ services:
     networks:
       - edge
 
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    profiles: [observability]
+    command: ["--config.file=/etc/alertmanager/alertmanager.yml", "--storage.path=/alertmanager"]
+    ports:
+      - "127.0.0.1:9093:9093"
+    restart: unless-stopped
+    volumes:
+      - ./infra/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    networks:
+      - edge
+
   grafana:
     image: grafana/grafana:12.1.1
     profiles: [observability]
@@ -184,3 +197,4 @@ volumes:
   caddy_config:
   prometheus_data:
   grafana_data:
+  alertmanager_data:
