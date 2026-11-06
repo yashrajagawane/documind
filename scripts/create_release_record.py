@@ -31,6 +31,11 @@ def main() -> int:
     for image in (args.backend_image, args.frontend_image):
         if not image.endswith(f":{args.commit}"):
             parser.error("deployed image references must end with the release Git SHA")
+    for image in (args.rollback_backend_image, args.rollback_frontend_image):
+        if not re.fullmatch(r".+:[0-9a-f]{40}", image):
+            parser.error("rollback image references must use a full Git SHA tag")
+    if not args.migration_head.strip():
+        parser.error("--migration-head must not be empty")
     if args.smoke_result != "passed":
         print("Refusing to record a failed smoke test as a production release.", file=sys.stderr)
         return 1

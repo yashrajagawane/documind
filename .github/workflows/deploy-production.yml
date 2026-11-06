@@ -7,6 +7,10 @@ on:
         description: Release tag already qualified in staging
         required: true
         type: string
+      backup_id:
+        description: Verified pre-deploy backup identifier
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -80,3 +84,46 @@ jobs:
         run: |
           python -m pip install httpx==0.28.1
           python scripts/smoke_test.py --base-url "$PRODUCTION_BASE_URL" --email "$SMOKE_EMAIL" --password "$SMOKE_PASSWORD"
+
+      - name: Capture production migration head
+        id: migration
+        env:
+          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
+          PRODUCTION_USER: ${{ secrets.PRODUCTION_USER }}
+          PRODUCTION_APP_DIR: ${{ vars.PRODUCTION_APP_DIR }}
+        run: |
+          migration_head="$(ssh -o BatchMode=yes "$PRODUCTION_USER@$PRODUCTION_HOST" \
+            "cd '$PRODUCTION_APP_DIR' && docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml exec -T backend alembic current")"
+          echo "value=$migration_head" >> "$GITHUB_OUTPUT"
+
+      - name: Create sanitized release record
+        env:
+          IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+          RELEASE_SHA: ${{ steps.sha.outputs.value }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          MIGRATION_HEAD: ${{ steps.migration.outputs.value }}
+          BACKUP_ID: ${{ inputs.backup_id }}
+          ROLLBACK_BACKEND_IMAGE: ${{ vars.ROLLBACK_BACKEND_IMAGE }}
+          ROLLBACK_FRONTEND_IMAGE: ${{ vars.ROLLBACK_FRONTEND_IMAGE }}
+        run: |
+          image_prefix="${IMAGE_PREFIX,,}"
+          python scripts/create_release_record.py \
+            --version "$RELEASE_TAG" \
+            --commit "$RELEASE_SHA" \
+            --backend-image "$image_prefix-backend:$RELEASE_SHA" \
+            --frontend-image "$image_prefix-frontend:$RELEASE_SHA" \
+            --migration-head "$MIGRATION_HEAD" \
+            --backup-id "$BACKUP_ID" \
+            --operator "$GITHUB_ACTOR" \
+            --smoke-result passed \
+            --rollback-backend-image "$ROLLBACK_BACKEND_IMAGE" \
+            --rollback-frontend-image "$ROLLBACK_FRONTEND_IMAGE" \
+            --output "artifacts/production-release-$RELEASE_TAG.json"
+
+      - name: Upload production release record
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-release-${{ steps.release.outputs.tag }}
+          path: artifacts/production-release-${{ steps.release.outputs.tag }}.json
+          if-no-files-found: error
+          retention-days: 365
