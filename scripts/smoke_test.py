@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import time
 from uuid import uuid4
@@ -27,9 +28,16 @@ def main() -> int:
     parser.add_argument("--document", type=Path)
     parser.add_argument("--question", default="What is the main point of this document?")
     parser.add_argument("--processing-timeout", type=int, default=900)
+    parser.add_argument(
+        "--min-citation-score",
+        type=float,
+        default=float(os.environ.get("RETRIEVAL_MIN_SCORE", "0.35")),
+    )
     args = parser.parse_args()
     if args.processing_timeout < 1:
         parser.error("--processing-timeout must be positive")
+    if not 0 <= args.min_citation_score <= 1:
+        parser.error("--min-citation-score must be between 0 and 1")
     api = f"{args.base_url.rstrip('/')}/api/v1"
 
     with httpx.Client(timeout=30, follow_redirects=True) as client:
@@ -120,11 +128,16 @@ def main() -> int:
                 json={"question": args.question},
             )
             check(answer, {200}, "grounded chat")
+            if not answer.json().get("answer", "").strip():
+                raise RuntimeError("grounded chat returned an empty answer")
             citations = answer.json().get("citations", [])
             if not citations:
                 raise RuntimeError("grounded chat returned no verified citations")
             for citation in citations:
-                if not citation.get("chunk_id") or citation.get("score", 0) < 0.35:
+                if (
+                    not citation.get("chunk_id")
+                    or citation.get("score", 0) < args.min_citation_score
+                ):
                     raise RuntimeError("grounded chat returned an invalid citation")
             print(f"PASS citation integrity ({len(citations)} citations)")
 
