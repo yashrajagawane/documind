@@ -233,6 +233,12 @@ owner, expiry date, and launch approval.
 
 ### Phase 4 — Observability, Backup, and Recovery Readiness
 
+> **Repository baseline (2026-11-07):** A private Prometheus/Grafana stack,
+> alert rules, bounded container log retention, encrypted PostgreSQL backup and
+> disposable restore scripts, daily systemd timer, and Qdrant rebuild command
+> are now included. Alert delivery, host/dependency metrics, and live backup,
+> restore, and index-rebuild rehearsals remain to be qualified in staging.
+
 **Goal:** Detect failures promptly and restore authoritative data predictably.
 
 **Actions**

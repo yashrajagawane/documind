@@ -1,0 +1,16 @@
+[Unit]
+Description=Encrypted DocuMind PostgreSQL backup to object storage
+Wants=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/documind
+EnvironmentFile=/etc/documind/backup.env
+ExecStart=/usr/bin/bash /opt/documind/scripts/backup_postgres.sh /opt/documind/.env.production
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/tmp
+NoNewPrivileges=true

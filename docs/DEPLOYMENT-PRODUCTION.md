@@ -215,6 +215,84 @@ If an application check fails after a release:
 5. Record the incident, deployed revision, migration head, backup identifier,
    decision maker, and remediation work.
 
+## 6. Monitoring, Backups, and Recovery
+
+Start the private monitoring stack when the production secrets are present:
+
+```bash
+docker compose --env-file .env.production \
+  -f docker-compose.yml -f docker-compose.prod.yml \
+  --profile observability up -d prometheus alertmanager grafana
+```
+
+Prometheus scrapes the API with the protected metrics token. Grafana and
+Prometheus bind only to host loopback ports 3001 and 9090; connect from an
+operator workstation through SSH port forwarding. Grafana's initial admin
+password comes from `GRAFANA_ADMIN_PASSWORD`; change it after first login.
+Alertmanager shows fired alerts locally, but the default receiver has no email,
+chat, or webhook integration. Configure and validate an operator notification
+channel before relying on alerts during an incident.
+
+The dashboard covers metrics exposed by the current API process: scrape health,
+job state counts, oldest queued-job age, retries, expired leases, processing
+duration, and rate-limit backend errors. These metrics do not provide a complete
+host CPU, disk, memory, database, Redis, object-storage, or Qdrant health view;
+add provider/host monitoring for those dependencies. The Compose overlay caps
+Docker JSON logs at five 10 MB files per service. Export logs to a protected
+central destination if longer retention or cross-host incident review is needed.
+
+Prepare backup tooling on the host (`age`, AWS CLI, and instance-role or other
+approved object-storage credentials). Store the age recipient and backup bucket
+in a root-owned `/etc/documind/backup.env` with mode `0600`; never put the age
+identity/decryption key on the production host. Install the supplied daily
+systemd timer:
+
+```bash
+sudo install -o root -g root -m 600 ./infra/systemd/documind-backup.service /etc/systemd/system/
+sudo install -o root -g root -m 644 ./infra/systemd/documind-backup.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now documind-backup.timer
+sudo systemctl start documind-backup.service
+sudo systemctl status documind-backup.service documind-backup.timer
+```
+
+The backup is PostgreSQL custom format encrypted with age before upload and
+server-side encrypted by the bucket. Enable bucket versioning and lifecycle
+retention independently. S3-compatible object storage remains the source for
+uploaded originals; confirm versioning/replication and retention in the
+provider. Qdrant remains derived and is rebuilt from ready PostgreSQL artifacts.
+
+For a restore rehearsal, download an encrypted backup to an isolated staging
+operator machine, keep the age identity there, create a fresh staging database,
+and restore into a name beginning `documind_restore_`:
+
+```bash
+aws s3 cp s3://YOUR_BACKUP_BUCKET/postgres/YOUR_BACKUP.dump.age ./restore.dump.age
+export RESTORE_ENVIRONMENT=staging
+export AGE_IDENTITY_FILE=/secure/path/age-identity.txt
+bash scripts/restore_postgres_disposable.sh .env.staging ./restore.dump.age documind_restore_rehearsal
+```
+
+The restore helper refuses to run unless `RESTORE_ENVIRONMENT=staging` and the
+target name matches the disposable prefix. Verify migration head, row counts,
+ownership boundaries, and a smoke test against an isolated API configured to
+use that restored database. Record elapsed restore time against the 8-hour RTO.
+
+To rebuild Qdrant after loss, keep staging/production API traffic paused, verify
+PostgreSQL and S3 artifacts are healthy, then run the idempotent per-document
+reindex command from the API container:
+
+```bash
+docker compose --env-file .env.production \
+  -f docker-compose.yml -f docker-compose.prod.yml \
+  exec -T backend python -m app.indexing.rebuild
+```
+
+It removes and recreates vectors for each ready document from its canonical
+stored Markdown artifact. Review its summary and rerun the staging retrieval
+qualification before restoring traffic. Do not run concurrent manual indexing
+or document deletion during a rebuild.
+
 ## Operational Boundaries
 
 - The overlay supplies restart policies and API/frontend health checks, but
@@ -224,5 +302,6 @@ If an application check fails after a release:
   provider/host monitoring for availability alerts.
 - S3 bucket policy, encryption, versioning, deletion, and restore behavior are
   provider-specific and require a live staging qualification.
-- This runbook establishes a production-ready deployment baseline; it does not
-  replace Phase 3 staging qualification or Phase 4 recovery/observability gates.
+- This runbook provides recovery procedures; Phase 4 is complete only after
+  alert delivery, scheduled backups, and isolated restore/Qdrant rebuild have
+  been rehearsed successfully in staging.

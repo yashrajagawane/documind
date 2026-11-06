@@ -30,6 +30,7 @@ def valid_values() -> dict[str, str]:
         "JWT_SECRET_KEY": "a-production-secret-that-is-longer-than-32-characters",
         "REFRESH_COOKIE_SECURE": "true",
         "METRICS_TOKEN": "metrics-token-value",
+        "GRAFANA_ADMIN_PASSWORD": "grafana-admin-password-value",
     }
 
 

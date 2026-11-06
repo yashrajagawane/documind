@@ -37,12 +37,20 @@ python tests/evals/evaluator.py --live --report ./artifacts/rag-evaluation.json
 
 ## Backup and restore rehearsal
 
-1. Take a PostgreSQL logical backup with `pg_dump` from the running Compose service.
-2. Record the backup timestamp, migration head, image tags, and object/storage snapshot identifier.
-3. Restore into a separate disposable PostgreSQL database; never experiment on the only live database.
-4. Run `alembic current` and confirm the restored database reaches the expected head.
-5. Run the smoke test against the restored stack and verify user/document ownership, preview, and citations.
-6. Record restore duration, missing data, and corrective actions.
+1. Confirm the daily backup timer ran and the encrypted backup object exists with the expected retention/versioning.
+2. Record the backup timestamp, migration head, image tags, age key identifier (not key), and object-storage snapshot identifier.
+3. Restore into a separate disposable PostgreSQL database with `scripts/restore_postgres_disposable.sh`; never experiment on the only live database.
+4. Confirm the restored migration head, expected row counts, and user/document ownership in an isolated stack.
+5. Rebuild Qdrant with `python -m app.indexing.rebuild` in the isolated API container and verify retrieval/citations.
+6. Record restore duration against the 8-hour RTO, data loss against the 24-hour RPO, missing data, and corrective actions.
+
+## Observability and alerts
+
+- [ ] Prometheus scrapes `/api/v1/metrics` using bearer-token authentication.
+- [ ] Grafana dashboard loads and is reachable only through host loopback/SSH tunnel.
+- [ ] Alertmanager delivers a test alert to the configured operator channel.
+- [ ] Queue backlog, failed jobs, API scrape failure, Redis rate-limit errors, and metrics/database errors trigger expected alerts.
+- [ ] Container logs retain request IDs and rotate within configured disk limits.
 
 Uploaded files and Qdrant vectors are derived/replaceable differently: preserve the private storage snapshot and verify that Qdrant can be rebuilt from authoritative artifacts before declaring recovery complete.
 

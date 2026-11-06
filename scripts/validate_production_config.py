@@ -26,6 +26,7 @@ REQUIRED_VALUES = (
     "GEMINI_API_KEY",
     "JWT_SECRET_KEY",
     "METRICS_TOKEN",
+    "GRAFANA_ADMIN_PASSWORD",
 )
 PLACEHOLDER_MARKERS = ("replace-with", "example.com", "change-me", "your_")
 
