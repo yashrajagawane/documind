@@ -36,8 +36,9 @@ Replace every placeholder. Important values include:
 
 - `CADDY_DOMAIN`: the exact public hostname, without a scheme.
 - `CADDY_EMAIL`: contact address for TLS certificate notices.
-- `CORS_ORIGINS` and `NEXT_PUBLIC_API_BASE_URL`: exactly match the public HTTPS
-  origin and API path.
+- `CORS_ORIGINS`: exactly match the public HTTPS frontend origin.
+- `NEXT_PUBLIC_API_BASE_URL=/api/v1`: browser API calls stay on the same HTTPS
+  origin and pass through Caddy's `/api/*` route.
 - `STORAGE_BACKEND=s3`: production documents must use the private bucket.
 - `QDRANT_API_KEY`: a unique secret shared only by the API, worker, and Qdrant.
 - `JWT_SECRET_KEY`, `POSTGRES_PASSWORD`, and `METRICS_TOKEN`: unique secrets,

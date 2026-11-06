@@ -73,8 +73,8 @@ def validate(values: dict[str, str]) -> None:
         raise ValueError("QDRANT_URL must target the private Compose service.")
     if values.get("CADDY_DOMAIN", "").startswith(("http://", "https://")):
         raise ValueError("CADDY_DOMAIN must be a hostname without a URL scheme.")
-    if values.get("NEXT_PUBLIC_API_BASE_URL") != f"https://{values['CADDY_DOMAIN']}/api/v1":
-        raise ValueError("NEXT_PUBLIC_API_BASE_URL must use the public HTTPS domain.")
+    if values.get("NEXT_PUBLIC_API_BASE_URL") != "/api/v1":
+        raise ValueError("NEXT_PUBLIC_API_BASE_URL must use the same-origin /api/v1 path.")
     if values.get("CORS_ORIGINS") != f"https://{values['CADDY_DOMAIN']}":
         raise ValueError("CORS_ORIGINS must contain only the public HTTPS domain.")
 
