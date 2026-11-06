@@ -8,8 +8,15 @@
 # The base Compose file remains intentionally convenient for local development.
 # This overlay removes public data-service ports and adds the HTTPS edge proxy.
 
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   migrate:
+    logging: *default-logging
     image: ${DOCUMIND_BACKEND_IMAGE:-documind-backend:local}
     env_file: ${DOCUMIND_ENV_FILE:-.env.production}
     command: ["alembic", "upgrade", "head"]
@@ -21,17 +28,20 @@ services:
       - data
 
   postgres:
+    logging: *default-logging
     ports: !reset []
     networks:
       - data
     restart: unless-stopped
 
   redis:
+    logging: *default-logging
     restart: unless-stopped
     networks:
       - data
 
   qdrant:
+    logging: *default-logging
     ports: !reset []
     restart: unless-stopped
     environment:
@@ -40,6 +50,7 @@ services:
       - data
 
   backend:
+    logging: *default-logging
     image: ${DOCUMIND_BACKEND_IMAGE:-documind-backend:local}
     build: !reset null
     env_file: ${DOCUMIND_ENV_FILE:-.env.production}
@@ -59,6 +70,7 @@ services:
       - data
 
   worker:
+    logging: *default-logging
     image: ${DOCUMIND_BACKEND_IMAGE:-documind-backend:local}
     build: !reset null
     env_file: ${DOCUMIND_ENV_FILE:-.env.production}
@@ -76,6 +88,7 @@ services:
       - data
 
   scheduler:
+    logging: *default-logging
     image: ${DOCUMIND_BACKEND_IMAGE:-documind-backend:local}
     build: !reset null
     env_file: ${DOCUMIND_ENV_FILE:-.env.production}
@@ -94,6 +107,7 @@ services:
       - data
 
   frontend:
+    logging: *default-logging
     image: ${DOCUMIND_FRONTEND_IMAGE:-documind-frontend:local}
     build: !reset null
     env_file: ${DOCUMIND_ENV_FILE:-.env.production}
@@ -112,6 +126,7 @@ services:
       - edge
 
   proxy:
+    logging: *default-logging
     image: caddy:2.10-alpine
     depends_on:
       backend:
@@ -133,6 +148,7 @@ services:
       - edge
 
   prometheus:
+    logging: *default-logging
     image: prom/prometheus:v3.5.0
     profiles: [observability]
     command:
@@ -156,6 +172,7 @@ services:
       - edge
 
   alertmanager:
+    logging: *default-logging
     image: prom/alertmanager:v0.28.1
     profiles: [observability]
     command: ["--config.file=/etc/alertmanager/alertmanager.yml", "--storage.path=/alertmanager"]
@@ -169,6 +186,7 @@ services:
       - edge
 
   grafana:
+    logging: *default-logging
     image: grafana/grafana:12.1.1
     profiles: [observability]
     environment:
