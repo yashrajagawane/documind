@@ -1,0 +1,64 @@
+name: Deploy production
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag already qualified in staging
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: documind-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy approved release to production
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Validate release tag
+        id: release
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]]; then
+            echo "release_tag must be a semantic version tag such as v1.2.3" >&2
+            exit 1
+          fi
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve immutable commit
+        id: revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release.outputs.tag }}
+          fetch-depth: 1
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.PRODUCTION_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.PRODUCTION_SSH_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Deploy immutable images
+        env:
+          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
+          PRODUCTION_USER: ${{ secrets.PRODUCTION_USER }}
+          PRODUCTION_APP_DIR: ${{ vars.PRODUCTION_APP_DIR }}
+          IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+          RELEASE_SHA: ${{ steps.revision.outputs.commit }}
+        run: |
+          image_prefix="${IMAGE_PREFIX,,}"
+          ssh -o BatchMode=yes "$PRODUCTION_USER@$PRODUCTION_HOST" \
+            "cd '$PRODUCTION_APP_DIR' && DOCUMIND_APP_DIR='$PRODUCTION_APP_DIR' ./scripts/deploy_compose.sh '$RELEASE_SHA' '$image_prefix-backend:$RELEASE_SHA' '$image_prefix-frontend:$RELEASE_SHA'"
