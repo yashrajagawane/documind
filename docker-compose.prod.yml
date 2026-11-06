@@ -132,6 +132,47 @@ services:
     networks:
       - edge
 
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    profiles: [observability]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --web.enable-lifecycle
+    environment:
+      METRICS_TOKEN: ${METRICS_TOKEN:?Set METRICS_TOKEN in .env.production}
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:9090:9090"
+    restart: unless-stopped
+    volumes:
+      - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - edge
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    profiles: [observability]
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in .env.production}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    ports:
+      - "127.0.0.1:3001:3000"
+    restart: unless-stopped
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infra/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - edge
+
 networks:
   edge:
   data:
@@ -141,3 +182,5 @@ networks:
 volumes:
   caddy_data:
   caddy_config:
+  prometheus_data:
+  grafana_data:

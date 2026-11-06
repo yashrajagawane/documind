@@ -16,12 +16,19 @@ router = APIRouter()
 @router.get("/metrics", include_in_schema=False, response_class=PlainTextResponse)
 async def metrics_endpoint(
     x_metrics_token: str | None = Header(default=None),
+    authorization: str | None = Header(default=None),
 ) -> PlainTextResponse:
     """Expose process metrics only when a dedicated operations token is configured."""
     configured_token = get_settings().metrics_token
-    if not configured_token or not x_metrics_token:
+    bearer_token = (
+        authorization[7:]
+        if authorization and authorization.lower().startswith("bearer ")
+        else None
+    )
+    supplied_token = x_metrics_token or bearer_token
+    if not configured_token or not supplied_token:
         raise HTTPException(status_code=404, detail="Not found.")
-    if not secrets.compare_digest(configured_token, x_metrics_token):
+    if not secrets.compare_digest(configured_token, supplied_token):
         raise HTTPException(status_code=404, detail="Not found.")
     try:
         async with AsyncSessionFactory() as db:
