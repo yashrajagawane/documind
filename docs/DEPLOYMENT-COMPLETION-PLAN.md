@@ -1,6 +1,6 @@
 # DocuMind Deployment Completion Plan
 
-**Status:** Phase 0 decision recorded; Phase 1 repository implementation complete; live qualification pending
+**Status:** Phases 0–1 repository gates complete; Phase 2 release automation implemented; staging execution pending
 **Owner:** Project maintainer  
 **Scope:** Production deployment qualification for the current V1 application  
 **Baseline revision:** `91e9910`  
@@ -150,6 +150,13 @@ through controlled HTTPS endpoints, and repeatable from versioned configuration.
 exposes no data service publicly, and accepts HTTPS traffic successfully.
 
 ### Phase 2 — Build, Test, and Release Automation
+
+> **Implementation note (2026-11-06):** CI now builds full commit SHA tagged
+> backend/frontend images, security workflows scan code/dependencies/secrets,
+> staging and production deployment workflows use GitHub protected environments,
+> and the remote Compose script applies migrations once before starting app
+> services. The live exit gate awaits staging host/registry/GitHub environment
+> setup and a successful tagged release deployment.
 
 **Goal:** Ensure a release candidate is tested and immutable before it can reach
 staging or production.

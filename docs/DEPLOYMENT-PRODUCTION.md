@@ -23,6 +23,58 @@ Do not expose PostgreSQL, Redis, or Qdrant through host ports or public
 firewall rules. The production overlay deliberately makes them Compose-network
 services only.
 
+## Release Automation Setup
+
+The GitHub Actions workflows test pull requests, build backend and frontend
+images, scan code/dependencies/secrets, and publish immutable images to GHCR on
+pushes outside pull requests. Each image is tagged with the full Git commit SHA;
+release tags are added as human-readable aliases. Deployments use the SHA tag.
+
+Prepare each VM once:
+
+1. Install Git, Docker Engine, and Compose v2. Create `/opt/documind`, clone the
+   repository there, and place that environment's protected `.env.production`
+   file beside `docker-compose.yml`.
+2. Give the VM read-only access to the private GHCR packages using a narrowly
+   scoped registry credential. Log Docker into `ghcr.io` on the VM and verify it
+   can pull both images. Do not put the registry credential in GitHub workflow
+   output or the deployment env file.
+3. Add GitHub repository environments named `staging` and `production`. Set
+   `STAGING_APP_DIR` and `PRODUCTION_APP_DIR` as environment variables. Add
+   environment secrets for `*_HOST`, `*_USER`, `*_SSH_PRIVATE_KEY`, and
+   `*_SSH_KNOWN_HOSTS`. Keep staging and production host keys and users separate.
+4. Configure required reviewers and branch/tag restrictions on the `production`
+   environment in GitHub Settings. The workflow waits for this environment's
+   approval before connecting to production.
+5. Restrict each SSH account and firewall to deployment administration. Pin the
+   expected SSH host key in `*_SSH_KNOWN_HOSTS`; do not discover it dynamically
+   in the deployment job.
+
+## Release Flow
+
+1. Merge a release candidate to `main`; CI and security workflows complete and
+   GHCR receives SHA tagged images.
+2. Create and push a semantic release tag such as `v1.2.3` from the approved
+   commit. The CI workflow publishes that version alias as well as the full SHA.
+3. Run **Deploy staging** from GitHub Actions with the release tag. Verify the
+   tag, then monitor the deployment job and staging release checklist.
+4. After staging qualification, run **Deploy production** with the same tag.
+   A required reviewer must approve the protected `production` environment.
+5. Record the Git SHA, both image references, migration head, approver, smoke
+   results, and prior known-good SHA in the release record.
+
+The deploy script checks out the selected commit, pulls the matching images,
+runs one migration task to completion, then starts the API/worker/scheduler and
+frontend without building images on the server. It uses forward migrations only.
+The previous image remains available by its SHA tag for application rollback.
+
+## Registry Retention
+
+Keep all production deployed SHA tagged images and the latest two known-good
+release tags. Configure GHCR cleanup to remove only untagged images and stale
+pull-request artifacts; never delete image tags referenced by a release record
+or rollback plan.
+
 ## 1. Prepare the Production Environment File
 
 On the deployment host, create a protected environment file:

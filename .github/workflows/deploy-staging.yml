@@ -61,4 +61,4 @@ jobs:
         run: |
           image_prefix="${IMAGE_PREFIX,,}"
           ssh -o BatchMode=yes "$STAGING_USER@$STAGING_HOST" \
-            "cd '$STAGING_APP_DIR' && DOCUMIND_APP_DIR='$STAGING_APP_DIR' ./scripts/deploy_compose.sh '$RELEASE_SHA' '$image_prefix-backend:$RELEASE_SHA' '$image_prefix-frontend:$RELEASE_SHA'"
+            "cd '$STAGING_APP_DIR' && DOCUMIND_APP_DIR='$STAGING_APP_DIR' bash scripts/deploy_compose.sh '$RELEASE_SHA' '$image_prefix-backend:$RELEASE_SHA' '$image_prefix-frontend:$RELEASE_SHA'"
