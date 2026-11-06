@@ -10,6 +10,7 @@ import argparse
 import json
 import os
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 # Add backend to sys.path so app modules can be imported
@@ -87,6 +88,11 @@ def main() -> int:
         action="store_true",
         help="Run live generation through Gemini API (requires GEMINI_API_KEY).",
     )
+    parser.add_argument(
+        "--report",
+        type=Path,
+        help="Optional JSON path for a machine-readable qualification report.",
+    )
     args = parser.parse_args()
 
     if not args.cases.is_file():
@@ -95,6 +101,7 @@ def main() -> int:
 
     passed = 0
     total = 0
+    results: list[dict[str, str | bool]] = []
 
     with args.cases.open("r", encoding="utf-8") as f:
         for line in f:
@@ -105,10 +112,23 @@ def main() -> int:
             case = json.loads(line)
             success, message = evaluate_case(case, run_live=args.live)
             print(message)
+            results.append({"id": str(case.get("id", "unknown")), "passed": success, "message": message})
             if success:
                 passed += 1
 
     print(f"\nEvaluation summary: {passed}/{total} passed.")
+    if args.report:
+        report = {
+            "created_at": datetime.now(UTC).isoformat(),
+            "mode": "live" if args.live else "offline",
+            "model": os.environ.get("GEMINI_MODEL", "configured-default"),
+            "cases_file": str(args.cases),
+            "summary": {"passed": passed, "total": total},
+            "results": results,
+        }
+        args.report.parent.mkdir(parents=True, exist_ok=True)
+        args.report.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        print(f"INFO evaluation report written to {args.report}")
     return 0 if passed == total else 1
 
 
