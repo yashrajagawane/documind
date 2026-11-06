@@ -10,7 +10,7 @@
 
 services:
   migrate:
-    image: ${DOCUMIND_BACKEND_IMAGE:?Set DOCUMIND_BACKEND_IMAGE to an immutable image tag}
+    image: ${DOCUMIND_BACKEND_IMAGE:-documind-backend:local}
     env_file: ${DOCUMIND_ENV_FILE:-.env.production}
     command: ["alembic", "upgrade", "head"]
     depends_on:
@@ -40,7 +40,7 @@ services:
       - data
 
   backend:
-    image: ${DOCUMIND_BACKEND_IMAGE:?Set DOCUMIND_BACKEND_IMAGE to an immutable image tag}
+    image: ${DOCUMIND_BACKEND_IMAGE:-documind-backend:local}
     build: !reset null
     env_file: ${DOCUMIND_ENV_FILE:-.env.production}
     ports: !reset []
@@ -59,7 +59,7 @@ services:
       - data
 
   worker:
-    image: ${DOCUMIND_BACKEND_IMAGE:?Set DOCUMIND_BACKEND_IMAGE to an immutable image tag}
+    image: ${DOCUMIND_BACKEND_IMAGE:-documind-backend:local}
     build: !reset null
     env_file: ${DOCUMIND_ENV_FILE:-.env.production}
     restart: unless-stopped
@@ -76,7 +76,7 @@ services:
       - data
 
   scheduler:
-    image: ${DOCUMIND_BACKEND_IMAGE:?Set DOCUMIND_BACKEND_IMAGE to an immutable image tag}
+    image: ${DOCUMIND_BACKEND_IMAGE:-documind-backend:local}
     build: !reset null
     env_file: ${DOCUMIND_ENV_FILE:-.env.production}
     restart: unless-stopped
@@ -94,7 +94,7 @@ services:
       - data
 
   frontend:
-    image: ${DOCUMIND_FRONTEND_IMAGE:?Set DOCUMIND_FRONTEND_IMAGE to an immutable image tag}
+    image: ${DOCUMIND_FRONTEND_IMAGE:-documind-frontend:local}
     build: !reset null
     env_file: ${DOCUMIND_ENV_FILE:-.env.production}
     ports: !reset []
