@@ -11,6 +11,7 @@ This checklist is required before calling a deployment demo-ready. A green local
 - [ ] Review the current commit and migration head before rollout.
 - [ ] Run `python scripts/validate_production_config.py --env-file .env.production`.
 - [ ] Confirm Docker publishes only proxy ports `80` and `443`; PostgreSQL, Redis, Qdrant, API, and frontend remain private.
+- [ ] Confirm the release tag points to a green CI run and record the full commit SHA and GHCR image references.
 
 ## Deploy and smoke test
 
@@ -18,19 +19,20 @@ This checklist is required before calling a deployment demo-ready. A green local
 docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml ps
 python scripts/smoke_test.py --base-url https://YOUR_DOMAIN
-python scripts/smoke_test.py --base-url https://YOUR_DOMAIN --email smoke@example.test --password "use-a-12-character-test-password"
+python scripts/smoke_test.py --base-url https://YOUR_DOMAIN --email "$SMOKE_EMAIL" --password "$SMOKE_PASSWORD" --document ./qualification-samples/qualification.pdf
+python tests/evals/evaluator.py --live --report ./artifacts/rag-evaluation.json
 ```
 
 - [ ] `/api/v1/health` returns healthy.
 - [ ] `/api/v1/ready` returns ready with database available.
 - [ ] Registration/login returns an access token and refresh cookie.
 - [ ] `/users/me` rejects missing/invalid tokens and accepts a valid token.
-- [ ] Upload creates a private document and queued processing job.
-- [ ] Processing reaches ready or a truthful failed state; it never reports ready without an artifact.
-- [ ] Preview/export works only for the owning user.
+- [ ] Staging smoke test uploads a representative document, polls until `ready`, validates preview and Markdown/JSON/HTML/TXT exports, and removes the test document.
+- [ ] Processing reaches ready; controlled failure tests report a truthful failed state and bounded retries.
+- [ ] Preview/export works only for the owning user; a second test identity receives 404 for the document.
 - [ ] Qdrant indexing uses mandatory user/document/version filters.
 - [ ] No-evidence chat returns the refusal message and no fabricated citation.
-- [ ] Grounded chat citations map only to retrieved chunks.
+- [ ] Grounded chat returns verified citations above the configured threshold and the report is saved.
 - [ ] Rate limiting returns 429 with `Retry-After` when a route threshold is exceeded.
 
 ## Backup and restore rehearsal
