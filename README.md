@@ -214,6 +214,7 @@ Detailed implementation guides, design records, and API contracts are available 
 | [API Reference](docs/API.md) | Complete endpoint catalog, request/response JSON payloads, and error envelopes |
 | [Configuration Reference](docs/CONFIGURATION.md) | Full list of environment variables, defaults, and production requirements |
 | [Production Deployment Runbook](docs/DEPLOYMENT-PRODUCTION.md) | Supported single-host deployment, TLS, private network, and release procedure |
+| [Production Launch Report](docs/PRODUCTION-LAUNCH-REPORT.md) | Go/no-go evidence, post-deploy checks, observation window, and closeout |
 | [Deployment Decision Record](docs/DEPLOYMENT-DECISION.md) | Approved initial topology, environment defaults, recovery targets, and provisioning inputs |
 | [Free Demo Guide (Zero-Cost)](docs/DEPLOYMENT-FREE-GUIDE.md) | Portfolio/demo guidance only; not suitable for private production documents |
 | [Architecture Guide](docs/ARCHITECTURE.md) | Component boundaries, ingestion flows, and service layer architecture |
@@ -231,6 +232,7 @@ DocuMind is an active, production-grade open-source project. In the spirit of en
 - **Release Automation** — CI builds commit-pinned images and GitHub Actions includes protected staging/production deployment workflows. Configure the repository environments and host secrets using the [production runbook](docs/DEPLOYMENT-PRODUCTION.md); no live environment has been configured yet.
 - **Staging Qualification** — The release workflow runs authenticated health checks after staging deploy; the optional document lifecycle smoke run and RAG report require a staging host and test credentials. Use the [qualification report](docs/STAGING-QUALIFICATION-REPORT.md) to record evidence.
 - **Operations and Recovery** — Repository tooling now includes Prometheus/Grafana, alert rules, encrypted PostgreSQL backups, disposable restore, and Qdrant rebuild. Live alert delivery and restore rehearsal remain pending; see the [production runbook](docs/DEPLOYMENT-PRODUCTION.md).
+- **Production Launch** — Protected deployment runs authenticated smoke checks and saves a sanitized release record. The live launch and 24-hour observation window have not been completed.
 
 - **S3 Storage Live Qualification** — The S3 storage adapter is fully implemented with Boto3 and AES-256 SSE, but requires qualification in your target production environment.
 - **Worker Memory Footprint** — IBM Docling layout models require at least 4 GB of RAM allocated to the Celery worker container during intensive parsing tasks.

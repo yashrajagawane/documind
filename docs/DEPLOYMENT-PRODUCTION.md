@@ -63,6 +63,13 @@ Prepare each VM once:
 5. Record the Git SHA, both image references, migration head, approver, smoke
    results, and prior known-good SHA in the release record.
 
+The production workflow runs authenticated health and auth checks after deploy.
+It then reads the migration head from the running API and uploads a sanitized
+release record. Configure production environment variables
+`PRODUCTION_BASE_URL`, `PRODUCTION_APP_DIR`, `ROLLBACK_BACKEND_IMAGE`, and
+`ROLLBACK_FRONTEND_IMAGE`, plus matching host/SSH/smoke-account secrets. Provide
+the ID of a verified pre-deploy backup when starting the workflow.
+
 The deploy script checks out the selected commit, pulls the matching images,
 runs one migration task to completion, then starts the API/worker/scheduler and
 frontend without building images on the server. It uses forward migrations only.
@@ -214,6 +221,12 @@ If an application check fails after a release:
    migration or restore the database from a rehearsed backup procedure.
 5. Record the incident, deployed revision, migration head, backup identifier,
    decision maker, and remediation work.
+
+Use [PRODUCTION-LAUNCH-REPORT.md](PRODUCTION-LAUNCH-REPORT.md) to capture the
+preflight approval, launch checks, at least 24 hours of observation, rollback
+decision, and closeout. Pause launch and roll back immediately for confirmed
+cross-user exposure, data loss, corrupt migrations, or inability to safely
+authenticate or process uploaded documents.
 
 ## 6. Monitoring, Backups, and Recovery
 

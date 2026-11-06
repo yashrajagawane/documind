@@ -269,6 +269,12 @@ within the chosen objectives without operating on the only production database.
 
 ### Phase 5 — Production Launch and Post-Launch Verification
 
+> **Repository baseline (2026-11-07):** Production workflow now checks health
+> and authentication after deployment, captures migration head, and publishes a
+> sanitized release artifact. A SHA-pinned production preflight and 24-hour
+> launch report are included. Production resources, actual launch, and
+> observation window remain pending.
+
 **Goal:** Release incrementally with a documented decision trail and verify
 real-user behavior.
 

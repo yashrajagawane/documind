@@ -10,17 +10,18 @@ This checklist is required before calling a deployment demo-ready. A green local
 - [ ] Confirm CORS contains only the deployed frontend origin.
 - [ ] Review the current commit and migration head before rollout.
 - [ ] Run `python scripts/validate_production_config.py --env-file .env.production`.
+- [ ] Run `scripts/production_preflight.py` with the immutable backend and frontend image references.
 - [ ] Confirm Docker publishes only proxy ports `80` and `443`; PostgreSQL, Redis, Qdrant, API, and frontend remain private.
 - [ ] Confirm the release tag points to a green CI run and record the full commit SHA and GHCR image references.
 
 ## Deploy and smoke test
 
-```powershell
-docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml up --build -d
-docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml ps
-python scripts/smoke_test.py --base-url https://YOUR_DOMAIN
-python scripts/smoke_test.py --base-url https://YOUR_DOMAIN --email "$SMOKE_EMAIL" --password "$SMOKE_PASSWORD" --document ./qualification-samples/qualification.pdf
-python tests/evals/evaluator.py --live --report ./artifacts/rag-evaluation.json
+```bash
+python scripts/production_preflight.py \
+  --env-file .env.production \
+  --backend-image ghcr.io/OWNER/REPO-backend:FULL_GIT_SHA \
+  --frontend-image ghcr.io/OWNER/REPO-frontend:FULL_GIT_SHA
+# Launch through the protected production workflow after staging qualification.
 ```
 
 - [ ] `/api/v1/health` returns healthy.
@@ -60,3 +61,4 @@ Uploaded files and Qdrant vectors are derived/replaceable differently: preserve 
 - [ ] Never downgrade a database migration automatically; use a reviewed forward migration or restore rehearsal.
 - [ ] Confirm the previous image can read the current schema before rollback.
 - [ ] Record go/no-go decision, operator, commit, migration head, backup ID, and outstanding risks.
+- [ ] Complete the 24-hour observation window and close out `docs/PRODUCTION-LAUNCH-REPORT.md`.
