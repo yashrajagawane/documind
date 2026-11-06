@@ -40,6 +40,10 @@ jobs:
           ref: ${{ steps.release.outputs.tag }}
           fetch-depth: 1
 
+      - name: Capture commit SHA
+        id: sha
+        run: echo "value=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: Configure SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.PRODUCTION_SSH_PRIVATE_KEY }}
@@ -57,7 +61,7 @@ jobs:
           PRODUCTION_USER: ${{ secrets.PRODUCTION_USER }}
           PRODUCTION_APP_DIR: ${{ vars.PRODUCTION_APP_DIR }}
           IMAGE_PREFIX: ghcr.io/${{ github.repository }}
-          RELEASE_SHA: ${{ steps.revision.outputs.commit }}
+          RELEASE_SHA: ${{ steps.sha.outputs.value }}
         run: |
           image_prefix="${IMAGE_PREFIX,,}"
           ssh -o BatchMode=yes "$PRODUCTION_USER@$PRODUCTION_HOST" \
