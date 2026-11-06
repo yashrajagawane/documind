@@ -66,3 +66,17 @@ jobs:
           image_prefix="${IMAGE_PREFIX,,}"
           ssh -o BatchMode=yes "$PRODUCTION_USER@$PRODUCTION_HOST" \
             "cd '$PRODUCTION_APP_DIR' && DOCUMIND_APP_DIR='$PRODUCTION_APP_DIR' bash scripts/deploy_compose.sh '$RELEASE_SHA' '$image_prefix-backend:$RELEASE_SHA' '$image_prefix-frontend:$RELEASE_SHA'"
+
+      - name: Configure production smoke-test runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify production health and authentication
+        env:
+          PRODUCTION_BASE_URL: ${{ vars.PRODUCTION_BASE_URL }}
+          SMOKE_EMAIL: ${{ secrets.PRODUCTION_SMOKE_EMAIL }}
+          SMOKE_PASSWORD: ${{ secrets.PRODUCTION_SMOKE_PASSWORD }}
+        run: |
+          python -m pip install httpx==0.28.1
+          python scripts/smoke_test.py --base-url "$PRODUCTION_BASE_URL" --email "$SMOKE_EMAIL" --password "$SMOKE_PASSWORD"
