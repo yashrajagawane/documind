@@ -16,6 +16,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   backend:
+    image: ${DOCUMIND_BACKEND_IMAGE:-documind-backend:local}
     build: ./backend
     env_file:
       - path: .env
@@ -27,13 +28,14 @@ services:
         condition: service_started
       redis:
         condition: service_healthy
-    command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "8000:8000"
     volumes:
       - ./storage:/app/storage
 
   worker:
+    image: ${DOCUMIND_BACKEND_IMAGE:-documind-backend:local}
     build: ./backend
     env_file:
       - path: .env
@@ -50,6 +52,7 @@ services:
       - ./storage:/app/storage
 
   scheduler:
+    image: ${DOCUMIND_BACKEND_IMAGE:-documind-backend:local}
     build: ./backend
     env_file:
       - path: .env
@@ -62,6 +65,7 @@ services:
     command: ["celery", "-A", "app.jobs.celery_app:celery_app", "beat", "--loglevel=INFO"]
 
   frontend:
+    image: ${DOCUMIND_FRONTEND_IMAGE:-documind-frontend:local}
     build:
       context: ./frontend
       args:

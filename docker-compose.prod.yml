@@ -9,6 +9,17 @@
 # This overlay removes public data-service ports and adds the HTTPS edge proxy.
 
 services:
+  migrate:
+    image: ${DOCUMIND_BACKEND_IMAGE:?Set DOCUMIND_BACKEND_IMAGE to an immutable image tag}
+    env_file: ${DOCUMIND_ENV_FILE:-.env.production}
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - data
+
   postgres:
     ports: !reset []
     networks:
@@ -29,6 +40,8 @@ services:
       - data
 
   backend:
+    image: ${DOCUMIND_BACKEND_IMAGE:?Set DOCUMIND_BACKEND_IMAGE to an immutable image tag}
+    build: !reset null
     env_file: ${DOCUMIND_ENV_FILE:-.env.production}
     ports: !reset []
     restart: unless-stopped
@@ -46,6 +59,8 @@ services:
       - data
 
   worker:
+    image: ${DOCUMIND_BACKEND_IMAGE:?Set DOCUMIND_BACKEND_IMAGE to an immutable image tag}
+    build: !reset null
     env_file: ${DOCUMIND_ENV_FILE:-.env.production}
     restart: unless-stopped
     init: true
@@ -61,6 +76,8 @@ services:
       - data
 
   scheduler:
+    image: ${DOCUMIND_BACKEND_IMAGE:?Set DOCUMIND_BACKEND_IMAGE to an immutable image tag}
+    build: !reset null
     env_file: ${DOCUMIND_ENV_FILE:-.env.production}
     restart: unless-stopped
     init: true
@@ -77,6 +94,8 @@ services:
       - data
 
   frontend:
+    image: ${DOCUMIND_FRONTEND_IMAGE:?Set DOCUMIND_FRONTEND_IMAGE to an immutable image tag}
+    build: !reset null
     env_file: ${DOCUMIND_ENV_FILE:-.env.production}
     ports: !reset []
     restart: unless-stopped
