@@ -229,6 +229,7 @@ DocuMind is an active, production-grade open-source project. In the spirit of en
 
 - **Deployment Qualification** — Phase 0 decisions and the Phase 1 repository baseline are complete; live staging qualification, provider-specific firewall/storage validation, and restore rehearsal remain outstanding. See the [deployment decision](docs/DEPLOYMENT-DECISION.md) and [production runbook](docs/DEPLOYMENT-PRODUCTION.md).
 - **Release Automation** — CI builds commit-pinned images and GitHub Actions includes protected staging/production deployment workflows. Configure the repository environments and host secrets using the [production runbook](docs/DEPLOYMENT-PRODUCTION.md); no live environment has been configured yet.
+- **Staging Qualification** — The release workflow runs authenticated health checks after staging deploy; the optional document lifecycle smoke run and RAG report require a staging host and test credentials. Use the [qualification report](docs/STAGING-QUALIFICATION-REPORT.md) to record evidence.
 
 - **S3 Storage Live Qualification** — The S3 storage adapter is fully implemented with Boto3 and AES-256 SSE, but requires qualification in your target production environment.
 - **Worker Memory Footprint** — IBM Docling layout models require at least 4 GB of RAM allocated to the Celery worker container during intensive parsing tasks.

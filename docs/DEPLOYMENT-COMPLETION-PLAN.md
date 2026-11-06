@@ -190,6 +190,12 @@ database downgrade.
 
 ### Phase 3 — Staging Qualification and End-to-End Validation
 
+> **Qualification tooling (2026-11-06):** The smoke script now supports a
+> disposable document lifecycle through processing, preview, exports, no-evidence
+> refusal, grounded citations, and deletion. Staging deployment runs health and
+> auth checks automatically, and the RAG evaluator can write a JSON report.
+> Staging host execution, provider cases, and approval evidence remain pending.
+
 **Goal:** Prove that the real distributed system works, not only its unit-test
 components.
 

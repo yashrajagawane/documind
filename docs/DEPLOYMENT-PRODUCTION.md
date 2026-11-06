@@ -183,6 +183,26 @@ Then run the full live checklist in `docs/RELEASE-CHECKLIST.md`, including a
 representative document upload, processing recovery test, preview/export,
 grounded citation checks, rate-limit test, and backup/restore rehearsal.
 
+For the staging qualification run, use a non-sensitive sample document and a
+dedicated staging test account. The authenticated smoke test removes the
+uploaded document after its end-to-end checks pass. Save the RAG output outside
+the repository and complete `docs/STAGING-QUALIFICATION-REPORT.md`:
+
+```bash
+python scripts/smoke_test.py \
+  --base-url https://staging.example.com \
+  --email "$STAGING_SMOKE_EMAIL" \
+  --password "$STAGING_SMOKE_PASSWORD" \
+  --document ./qualification-samples/qualification.pdf \
+  --processing-timeout 900
+python tests/evals/evaluator.py --live --report ./artifacts/staging-rag-evaluation.json
+```
+
+Repeat upload/preview/export for each supported format (PDF, DOCX, XLSX, PPTX,
+TXT, CSV, Markdown). Keep sample content synthetic. The automated deployment
+workflow runs health, readiness, and auth checks; document processing and live
+RAG qualification remain an operator controlled staging step.
+
 ## 5. Rollback
 
 If an application check fails after a release:
