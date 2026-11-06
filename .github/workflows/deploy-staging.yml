@@ -66,3 +66,16 @@ jobs:
           image_prefix="${IMAGE_PREFIX,,}"
           ssh -o BatchMode=yes "$STAGING_USER@$STAGING_HOST" \
             "cd '$STAGING_APP_DIR' && DOCUMIND_APP_DIR='$STAGING_APP_DIR' bash scripts/deploy_compose.sh '$RELEASE_SHA' '$image_prefix-backend:$RELEASE_SHA' '$image_prefix-frontend:$RELEASE_SHA'"
+
+      - name: Run authenticated staging smoke checks
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check staging health and authentication
+        env:
+          STAGING_BASE_URL: ${{ vars.STAGING_BASE_URL }}
+          SMOKE_EMAIL: ${{ secrets.STAGING_SMOKE_EMAIL }}
+          SMOKE_PASSWORD: ${{ secrets.STAGING_SMOKE_PASSWORD }}
+        run: |
+          python -m pip install httpx==0.28.1
+          python scripts/smoke_test.py --base-url "$STAGING_BASE_URL" --email "$SMOKE_EMAIL" --password "$SMOKE_PASSWORD"
