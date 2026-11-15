@@ -276,6 +276,34 @@ Avoid disabling ownership checks, CORS validation, rate limiting, or network iso
 
 ---
 
+## Production Deployment
+
+The supported production baseline is a single Linux host running Docker Compose, with Caddy terminating HTTPS. The production overlay removes public ports from PostgreSQL, Redis, Qdrant, the API, worker, scheduler, and frontend; only Caddy publishes ports 80 and 443.
+
+Before pointing real users or private documents at a host, prepare DNS and firewall rules, private encrypted object storage, independent staging resources, monitoring credentials, and a verified backup plan. Production requires private S3-compatible storage, secure refresh cookies, an HTTPS-only CORS origin, non-template secrets, and an authenticated Qdrant service.
+
+The repository includes a production environment template and a validation command:
+
+```bash
+cp .env.production.example .env.production
+chmod 600 .env.production
+python scripts/validate_production_config.py --env-file .env.production
+```
+
+Do not use the local `.env.example` as a production configuration. Use the full step-by-step instructions in [Production Deployment Runbook](docs/DEPLOYMENT-PRODUCTION.md), including host setup, firewall rules, qualification, rollback, and secret provisioning.
+
+### Automated release path
+
+1. A push or pull request runs frontend lint, typecheck, tests, and build; backend lint, tests, and migration SQL generation.
+2. Successful pushes build and publish backend and frontend images to GHCR, tagged by commit SHA; release tags provide readable aliases.
+3. Operators dispatch the staging deployment workflow with an approved image tag and qualify that environment.
+4. Production deployment uses the same versioned images, a protected GitHub environment approval, a pre-deploy backup reference, migrations, and authenticated post-deploy smoke checks.
+5. The workflow saves a sanitized release record. Rollback uses a known-good image while database changes remain forward-only.
+
+Configure GitHub environments, host SSH credentials, image registry access, protected production reviewers, and smoke-test credentials as documented in the runbook. Workflow files are in [`.github/workflows`](.github/workflows).
+
+---
+
 ## Essential Technology Stack
 
 ```
