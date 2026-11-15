@@ -322,6 +322,36 @@ Record backup retention, encryption key custody, restore duration, and the resul
 
 ---
 
+## Repository Guide
+
+| Path | Purpose |
+|---|---|
+| `frontend/` | Next.js web application and client-side API integration |
+| `backend/app/api/` | FastAPI routes and HTTP request/response boundaries |
+| `backend/app/services/` | Parsing, storage, retrieval, embeddings, and Gemini adapters |
+| `backend/app/jobs/` | Celery tasks, lease recovery, and scheduled reconciliation |
+| `backend/alembic/` | PostgreSQL schema migrations |
+| `backend/tests/` and `frontend/` tests | Backend and frontend automated test suites |
+| `tests/evals/` | Retrieval and grounded-answer evaluation tooling |
+| `infra/caddy/` | Reverse proxy routing and HTTPS configuration |
+| `infra/monitoring/` | Metrics, alerting, and Grafana provisioning |
+| `scripts/` | Deployment, validation, smoke testing, backup, restore, and release utilities |
+| `docs/` | API contracts, architecture, design, deployment, qualification, and project records |
+
+### Main services
+
+| Service | Responsibility | Persistent or derived data |
+|---|---|---|
+| `frontend` | Workspace UI | No authoritative application data |
+| `backend` | Authenticated API and orchestration | PostgreSQL records; private file objects |
+| `worker` / `scheduler` | Document processing and stale-job recovery | PostgreSQL job state and Redis queue messages |
+| `postgres` | Source of truth for accounts, documents, sessions, and jobs | Must be backed up |
+| `qdrant` | Semantic vector search index | Rebuildable derived index |
+| `redis` | Queue broker and distributed rate limit state | Operational state, configured separately from PostgreSQL |
+| `proxy` | TLS termination and routing in production | Caddy certificate and configuration volumes |
+
+---
+
 ## Essential Technology Stack
 
 ```
