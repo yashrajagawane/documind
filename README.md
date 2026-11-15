@@ -249,6 +249,33 @@ The final command deletes local database, Qdrant, and uploaded-file data. Use it
 
 ---
 
+## Operations & Troubleshooting
+
+### Inspect the stack
+
+```bash
+docker compose ps
+docker compose logs --tail=100 backend worker scheduler
+docker compose exec backend alembic current
+```
+
+The API's `/api/v1/health` endpoint checks that the process responds. `/api/v1/ready` also checks PostgreSQL and Redis and should be used as the readiness signal. A document may need time to pass through parsing, chunking, and indexing; poll its document status before retrying.
+
+### Common symptoms
+
+| Symptom | First checks |
+|---|---|
+| Frontend cannot reach API | Confirm `NEXT_PUBLIC_API_BASE_URL`, browser-reachable backend URL, and `CORS_ORIGINS` agree |
+| Upload remains processing | Inspect worker and scheduler logs, then check PostgreSQL and Redis health; review lease and attempt settings |
+| Parsing fails or container exits | Check available memory; Docling can need 4 GB or more during intensive parsing |
+| Chat reports unavailable | Confirm `GEMINI_API_KEY`, Gemini connectivity, Qdrant health, and that the document has indexed chunks |
+| Chat returns no evidence | Rephrase around document wording, verify indexing completed, and review `RETRIEVAL_MIN_SCORE` |
+| Production validation fails | Run `scripts/validate_production_config.py` against the selected environment file and fix every reported issue |
+
+Avoid disabling ownership checks, CORS validation, rate limiting, or network isolation to work around an error. For deeper procedures, see the [production runbook](docs/DEPLOYMENT-PRODUCTION.md) and [configuration reference](docs/CONFIGURATION.md).
+
+---
+
 ## Essential Technology Stack
 
 ```
