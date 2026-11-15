@@ -58,7 +58,7 @@
 
 Most document Q&A tools treat documents as unstructured blobs of text: they strip tables, ignore layout hierarchy, pass untrusted text straight to an LLM, and let the model hallucinate citations.
 
-**DocuMind** is an open-source, privately-hosted document intelligence platform engineered for technical and structured documents. It preserves tables and headings during parsing, indexes content locally with open-source embeddings, and synthesizes answers using Google Gemini while constructing citations on the server from verified vector search metadata.
+**DocuMind** is an open-source document intelligence platform designed for self-hosting and technical or structured documents. It preserves tables and headings during parsing, indexes content locally with open-source embeddings, and can synthesize answers using Google Gemini while constructing citations on the server from verified vector search metadata.
 
 ### Core Capabilities
 
@@ -465,7 +465,20 @@ Detailed implementation guides, design records, and API contracts are available 
 
 ## Project Status & Limitations
 
-DocuMind is an active, production-grade open-source project. In the spirit of engineering transparency, please note these current limitations:
+DocuMind is an actively developed open-source project with deployment and operations tooling in the repository. Tooling being present does not mean a production environment has been provisioned or qualified. The deployment status is:
+
+| Deployment phase | Repository status | Live environment status |
+|---|---|---|
+| Phase 0 — deployment decision | Decision record and operating defaults documented | Provider, domain, budget, and access owners are still provisioning inputs |
+| Phase 1 — packaging and security | Production Compose overlay, Caddy, private networks, validation, and runbook implemented | Host, DNS, S3 bucket, and secrets not provisioned |
+| Phase 2 — release automation | CI, image publishing, protected staging/production workflows implemented | Requires GitHub environments, host credentials, registry access, and a successful tagged deployment |
+| Phase 3 — staging qualification | Smoke, RAG evaluation, and qualification records available | Live staging checks and document lifecycle evaluation pending |
+| Phase 4 — operations and recovery | Monitoring, backup, disposable restore, and rebuild tooling available | Alert delivery and a successful restore rehearsal pending |
+| Phase 5 — production launch | Preflight, deployment smoke, release record, and observation report available | Production launch and 24-hour observation window not completed |
+
+The implementation plan and evidence templates live in the [deployment completion plan](docs/DEPLOYMENT-COMPLETION-PLAN.md), [staging qualification report](docs/STAGING-QUALIFICATION-REPORT.md), and [production launch report](docs/PRODUCTION-LAUNCH-REPORT.md). Do not treat the repository checklist or CI result as production approval.
+
+Current operational and product limitations:
 
 - **Deployment Qualification** — Phase 0 decisions and the Phase 1 repository baseline are complete; live staging qualification, provider-specific firewall/storage validation, and restore rehearsal remain outstanding. See the [deployment decision](docs/DEPLOYMENT-DECISION.md) and [production runbook](docs/DEPLOYMENT-PRODUCTION.md).
 - **Release Automation** — CI builds commit-pinned images and GitHub Actions includes protected staging/production deployment workflows. Configure the repository environments and host secrets using the [production runbook](docs/DEPLOYMENT-PRODUCTION.md); no live environment has been configured yet.
@@ -477,6 +490,8 @@ DocuMind is an active, production-grade open-source project. In the spirit of en
 - **Worker Memory Footprint** — IBM Docling layout models require at least 4 GB of RAM allocated to the Celery worker container during intensive parsing tasks.
 - **Monitoring Dashboards** — Prometheus metrics are exported at `/api/v1/metrics`, but production Grafana dashboards and alerting rules are deployment-specific.
 - **Security Audit** — While designed with defensive security controls (JWT in memory, CSRF/XSS mitigations, fail-closed rate limits), DocuMind has not undergone an independent third-party commercial penetration audit.
+- **External Model Processing** — Embeddings are computed locally, but grounded chat sends retrieved evidence and the user question to the configured Gemini API. Review the provider's data handling terms and configure the service accordingly before processing sensitive documents.
+- **Single-Host Baseline** — The production Compose path is a single-host deployment, not a highly available multi-region architecture. PostgreSQL, Redis, and Qdrant need separately managed persistence, monitoring, and capacity planning.
 
 ---
 
