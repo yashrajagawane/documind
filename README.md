@@ -296,6 +296,32 @@ The development server opens at `http://localhost:3000`. For complete service wi
 
 ---
 
+## API at a Glance
+
+The versioned API lives under `/api/v1`; interactive OpenAPI documentation is available at `http://localhost:8000/docs` when the backend is running.
+
+| Capability | Endpoints |
+|---|---|
+| Authentication | `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout` |
+| Account | `GET /users/me` |
+| Documents | `POST /documents`, `GET /documents`, `GET /documents/{id}`, `DELETE /documents/{id}` |
+| Content | `GET /documents/{id}/preview`, `/raw`, `/export`; export formats include `markdown`, `txt`, `json`, `html`, and `original` |
+| Processing | `POST /documents/{id}/index`, `/retry`; `GET /processing/{id}/status` |
+| Grounded Q&A | `POST /documents/{id}/chat` |
+| Operations | `GET /health`, `/ready`, `/metrics` |
+
+Most account and document routes require `Authorization: Bearer <access-token>`. Login returns the short-lived access token and sets the refresh token as an HttpOnly cookie; refresh and logout use that cookie. Metrics require the `X-Metrics-Token` header when a metrics token is configured.
+
+Example health check:
+
+```bash
+curl --fail http://localhost:8000/api/v1/health
+```
+
+See the [complete API reference](docs/API.md) for request schemas, response examples, authentication details, and error codes. Use `/ready` for dependency readiness; `/health` is a basic liveness check.
+
+---
+
 ## Documentation Index
 
 Detailed implementation guides, design records, and API contracts are available in the `docs/` directory:
