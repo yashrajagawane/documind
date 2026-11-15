@@ -454,12 +454,16 @@ Detailed implementation guides, design records, and API contracts are available 
 | [Configuration Reference](docs/CONFIGURATION.md) | Full list of environment variables, defaults, and production requirements |
 | [Production Deployment Runbook](docs/DEPLOYMENT-PRODUCTION.md) | Supported single-host deployment, TLS, private network, and release procedure |
 | [Production Launch Report](docs/PRODUCTION-LAUNCH-REPORT.md) | Go/no-go evidence, post-deploy checks, observation window, and closeout |
+| [Deployment Completion Plan](docs/DEPLOYMENT-COMPLETION-PLAN.md) | Deployment phases, repository deliverables, and live exit gates |
+| [Implementation Progress](docs/IMPLEMENTATION-PROGRESS.md) | Application implementation inventory and currently open work |
+| [Staging Qualification Report](docs/STAGING-QUALIFICATION-REPORT.md) | Record staging smoke, RAG evaluation, and operator evidence |
+| [Release Checklist](docs/RELEASE-CHECKLIST.md) | Pre-release, qualification, rollback, and operational checks |
 | [Deployment Decision Record](docs/DEPLOYMENT-DECISION.md) | Approved initial topology, environment defaults, recovery targets, and provisioning inputs |
 | [Free Demo Guide (Zero-Cost)](docs/DEPLOYMENT-FREE-GUIDE.md) | Portfolio/demo guidance only; not suitable for private production documents |
 | [Architecture Guide](docs/ARCHITECTURE.md) | Component boundaries, ingestion flows, and service layer architecture |
 | [Architecture Decisions (ADRs)](docs/ARCHITECTURE-DECISIONS.md) | Accepted ADRs (ADR-001 through ADR-008) governing technology and design choices |
 | [Design System](docs/DESIGN.md) | Dark-mode design tokens, typography, component states, and accessibility standards |
-| [Project Roadmap](docs/ROADMAP.md) | Completed milestones and upcoming features (cross-document search, hybrid retrieval) |
+| [Project Roadmap](docs/ROADMAP.md) | Product direction and future capabilities; pair with Implementation Progress for current status |
 
 ---
 
