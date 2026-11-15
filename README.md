@@ -27,6 +27,33 @@
 
 ---
 
+> **Project status:** The application, deployment automation, and operational tooling are implemented. A live production launch is **not yet qualified**: staging verification, provider-specific checks, and a restore rehearsal still need to be completed. See [Project Status & Limitations](#project-status--limitations) before deploying with real documents.
+
+<details>
+<summary><strong>Contents</strong></summary>
+
+- [What is DocuMind?](#what-is-documind)
+- [Product Workspace](#product-workspace)
+- [Processing Workflow](#processing-workflow)
+- [System Architecture](#system-architecture)
+- [Trust & Security Guarantees](#trust--security-guarantees)
+- [Quick Start](#quick-start)
+- [Local Development](#local-development)
+- [API at a Glance](#api-at-a-glance)
+- [Operations & Troubleshooting](#operations--troubleshooting)
+- [Production Deployment](#production-deployment)
+- [Observability & Recovery](#observability--recovery)
+- [Essential Technology Stack](#essential-technology-stack)
+- [Repository Guide](#repository-guide)
+- [Documentation Index](#documentation-index)
+- [Project Status & Limitations](#project-status--limitations)
+- [Contributing & Developer Workflow](#contributing--developer-workflow)
+- [License](#license)
+
+</details>
+
+---
+
 ## What is DocuMind?
 
 Most document Q&A tools treat documents as unstructured blobs of text: they strip tables, ignore layout hierarchy, pass untrusted text straight to an LLM, and let the model hallucinate citations.
@@ -40,6 +67,20 @@ Most document Q&A tools treat documents as unstructured blobs of text: they stri
 - **Grounded Conversational Q&A** — Generates answers with Gemini 3.8 Flash bounded by strict `<DOCUMENT_EVIDENCE>` delimiters.
 - **Server-Constructed Citations** — Chunk IDs, section titles, and relevance scores are assembled by the backend from Qdrant metadata; the LLM cannot invent citations.
 - **Strict Tenant & Document Isolation** — All vector search queries enforce mandatory `user_id` and `document_id` payload filters.
+
+### At a Glance
+
+| Area | Current behavior |
+|---|---|
+| Supported uploads | PDF, DOCX, XLSX, PPTX, TXT, CSV, and Markdown; default maximum size is 25 MB |
+| Processing | Durable Celery jobs, lease-based recovery, and visible per-document processing state |
+| Search | Local 384-dimensional embeddings with Qdrant filtering by owner and document |
+| Answers | Gemini-backed document Q&A when `GEMINI_API_KEY` is configured; deterministic no-evidence response otherwise |
+| Exports | Parsed content as Markdown, text, JSON, HTML, or original upload |
+| Deployment shape | Docker Compose on a single host, with a separate hardened production overlay |
+| Source of truth | PostgreSQL owns accounts, document metadata, and processing lifecycle; vectors are rebuildable |
+
+DocuMind is designed for private, single-host deployments and portfolio-scale use. Before treating it as a production service, complete the live qualification steps described in the deployment runbook and status section below.
 
 ---
 
@@ -191,6 +232,21 @@ To verify deployment integrity, run the authenticated smoke test:
 python scripts/smoke_test.py
 ```
 
+### Stop, Inspect, and Reset
+
+```bash
+# Follow all service logs
+docker compose logs -f --tail=100
+
+# Stop containers while keeping database, vector, and upload volumes
+docker compose down
+
+# Stop containers and permanently delete local Compose volumes
+docker compose down --volumes
+```
+
+The final command deletes local database, Qdrant, and uploaded-file data. Use it only when you intend to reset the development instance.
+
 ---
 
 ## Essential Technology Stack
@@ -202,6 +258,41 @@ Data & Storage         PostgreSQL 16 · Redis 7.4 · Celery 5.6 + Beat · Privat
 Document AI & Search   IBM Docling 2.129 · Sentence Transformers (all-MiniLM-L6-v2) · Qdrant 1.15 · Gemini 3.8 Flash
 Testing & Tooling      Pytest · Vitest · Testing Library · Docker Compose · Ruff
 ```
+
+---
+
+## Local Development
+
+Docker Compose is the simplest way to run the whole application. For faster iteration, you can also run the frontend and backend from their own folders while keeping PostgreSQL, Redis, and Qdrant in Compose.
+
+### Backend
+
+Use Python 3.11 or 3.12. The optional groups install parsing, vector indexing, and Gemini features; the base development group is intended for API and unit-test work.
+
+```bash
+cd backend
+python -m venv .venv
+# Activate the virtual environment for your shell, then:
+python -m pip install -e ".[dev,processing,indexing,rag]"
+```
+
+Set the environment values from the root `.env.example` for your local services, then run:
+
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Frontend
+
+Use Node.js 22 or newer. `NEXT_PUBLIC_API_BASE_URL` must point to the backend API base URL reachable by the browser (normally `http://localhost:8000/api/v1`).
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+The development server opens at `http://localhost:3000`. For complete service wiring, migrations, background jobs, and document parsing, prefer the [Docker Compose quick start](#quick-start).
 
 ---
 
