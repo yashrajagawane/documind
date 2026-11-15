@@ -500,6 +500,20 @@ npm test
 
 Please ensure all tests pass and code compiles before submitting a pull request. Refer to the [Architecture Decision Records](docs/ARCHITECTURE-DECISIONS.md) before proposing significant architectural changes.
 
+### Continuous integration
+
+GitHub Actions runs the frontend and backend checks on pushes and pull requests. The current workflow runs `npm ci`, ESLint, TypeScript typechecking, Vitest, and a Next.js production build; on the backend it installs the development dependencies, runs Ruff and Pytest, and renders the Alembic migration chain as SQL. Release image publication follows those checks on eligible pushes.
+
+Security workflows add CodeQL analysis, dependency review, and secret scanning. Deployment workflows are separate and require configured environments and host credentials; a green CI run by itself does not mean that a live staging or production deployment has been qualified.
+
+### Contribution checklist
+
+- Keep changes aligned with the existing API and architecture contracts.
+- Add or update tests for behavioral changes and migrations where appropriate.
+- Do not commit `.env` files, credentials, real user documents, or production release secrets.
+- Update relevant docs when configuration, APIs, deployment steps, or recovery behavior change.
+- Include a concise summary and verification evidence in the pull request.
+
 ---
 
 ## License
