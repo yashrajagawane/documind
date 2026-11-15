@@ -314,7 +314,7 @@ Operational assets include:
 
 - `scripts/backup_postgres.sh` — create an encrypted PostgreSQL backup.
 - `scripts/restore_postgres_disposable.sh` — restore into a disposable target for rehearsal.
-- `scripts/rebuild_qdrant.py` — rebuild vector data from persisted documents and parsed content.
+- `backend/app/indexing/rebuild.py` — rebuild vector data from ready PostgreSQL documents and parsed artifacts; run with `cd backend && python -m app.indexing.rebuild` in an environment with indexing dependencies and service configuration.
 - `infra/systemd/` — example systemd service/timer assets for scheduled backup execution.
 - `infra/monitoring/` — Prometheus scraping, alert rules, Alertmanager configuration, and Grafana provisioning.
 
