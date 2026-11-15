@@ -322,6 +322,25 @@ See the [complete API reference](docs/API.md) for request schemas, response exam
 
 ---
 
+## Configuration & Secrets
+
+Start from [`.env.example`](.env.example) for local Compose and [`.env.production.example`](.env.production.example) for a production host. Keep real environment files out of Git and restrict access to them on the host.
+
+| Setting | Local default or example | Production guidance |
+|---|---|---|
+| `ENVIRONMENT` | `development` | Set to `production`; startup validation enforces secure settings |
+| `CORS_ORIGINS` | `http://localhost:3000` | Exact HTTPS browser origin only; no wildcard |
+| `POSTGRES_PASSWORD` | Local-only sample value | Replace with a unique generated secret |
+| `JWT_SECRET_KEY` | Placeholder in example | Generate a long random value; rotation invalidates existing sessions |
+| `STORAGE_BACKEND` | `local` | Use private S3-compatible storage; enable encryption and recovery controls |
+| `QDRANT_API_KEY` | Empty for local development | Set a unique key; keep Qdrant private to the Docker network |
+| `GEMINI_API_KEY` | Empty | Needed only for Gemini answer synthesis |
+| `METRICS_TOKEN` | Empty | Set a strong value before enabling Prometheus scraping |
+
+The complete variable list, defaults, and validation rules are in [Configuration Reference](docs/CONFIGURATION.md). Never paste secrets into issue reports, terminal transcripts, release records, or screenshots. `GEMINI_API_KEY` is optional for local parsing and indexing, but grounded chat requires it.
+
+---
+
 ## Documentation Index
 
 Detailed implementation guides, design records, and API contracts are available in the `docs/` directory:
