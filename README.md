@@ -304,6 +304,24 @@ Configure GitHub environments, host SSH credentials, image registry access, prot
 
 ---
 
+## Observability & Recovery
+
+The production Compose overlay provides an optional `observability` profile with Prometheus, Alertmanager, and Grafana. The metrics endpoint is protected by `METRICS_TOKEN`; the dashboards and alert rules are provisioned from `infra/monitoring/`. Keep the observability UIs bound to localhost or behind an authenticated private access layer.
+
+PostgreSQL is the authoritative application store. The repository includes encrypted backup and disposable restore scripts; Qdrant is a derived index with a rebuild utility. A backup is not qualified until a restore has been exercised and the restored application data has been checked.
+
+Operational assets include:
+
+- `scripts/backup_postgres.sh` — create an encrypted PostgreSQL backup.
+- `scripts/restore_postgres_disposable.sh` — restore into a disposable target for rehearsal.
+- `scripts/rebuild_qdrant.py` — rebuild vector data from persisted documents and parsed content.
+- `infra/systemd/` — example systemd service/timer assets for scheduled backup execution.
+- `infra/monitoring/` — Prometheus scraping, alert rules, Alertmanager configuration, and Grafana provisioning.
+
+Record backup retention, encryption key custody, restore duration, and the result of a rehearsal in the deployment record. Follow the [production runbook](docs/DEPLOYMENT-PRODUCTION.md) for exact host commands and the [production launch report](docs/PRODUCTION-LAUNCH-REPORT.md) for sign-off evidence.
+
+---
+
 ## Essential Technology Stack
 
 ```
