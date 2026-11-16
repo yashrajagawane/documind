@@ -625,6 +625,23 @@ Current operational and product limitations:
 - **External Model Processing** — Embeddings are computed locally, but grounded chat sends retrieved evidence and the user question to the configured Gemini API. Review the provider's data handling terms and configure the service accordingly before processing sensitive documents.
 - **Single-Host Baseline** — The production Compose path is a single-host deployment, not a highly available multi-region architecture. PostgreSQL, Redis, and Qdrant need separately managed persistence, monitoring, and capacity planning.
 
+### Frequently asked questions
+
+**Can I run DocuMind without a Gemini API key?**
+Yes. Registration, upload, parsing, preview, and indexing can run without Gemini. Grounded answer generation requires `GEMINI_API_KEY` and a network connection to the configured Gemini API.
+
+**Are embeddings sent to a hosted embedding provider?**
+No. The configured Sentence Transformers model creates embeddings locally. The separate answer-generation step sends the question and retrieved evidence to Gemini when chat is used.
+
+**Can I use it for private production documents today?**
+The repository contains a production deployment path, but the live staging, provider, backup-restore, and launch gates have not been completed. Treat it as unqualified for production until the [deployment status](#project-status--limitations) gates are closed.
+
+**Can I run multiple application replicas?**
+The documented baseline targets one host and one Compose deployment. Scaling requires validating shared storage, worker concurrency, database and vector capacity, rate limits, and cross-replica behavior first.
+
+**Where should I start if a document fails?**
+Check the document status and backend/worker/scheduler logs, verify available memory and dependencies, then retry only after addressing the cause. See [Operations & Troubleshooting](#operations--troubleshooting).
+
 ---
 
 ## Contributing & Developer Workflow
