@@ -182,6 +182,26 @@ DocuMind follows a modular monolith pattern with explicit service isolation. Thi
 
 *For detailed architectural decisions and sequence flows, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/ARCHITECTURE-DECISIONS.md](docs/ARCHITECTURE-DECISIONS.md).*
 
+### Request and data boundaries
+
+```mermaid
+flowchart LR
+    U[Browser] -->|HTTPS / JSON + auth| P[Caddy in production]
+    P --> F[Next.js frontend]
+    P --> A[FastAPI API]
+    A -->|relational state| DB[(PostgreSQL)]
+    A -->|job messages| R[(Redis)]
+    R --> W[Celery worker]
+    W -->|parse and embed| D[Docling + local embeddings]
+    A -->|filtered retrieval| Q[(Qdrant)]
+    W -->|index chunks| Q
+    A -->|question + retrieved evidence| G[Gemini API]
+    A -->|private object access| S[(S3-compatible storage)]
+    W -->|private object access| S
+```
+
+The browser talks to the web/API edge only. Data stores and the worker are internal services in the production Compose network. Gemini is an outbound provider call made by the backend after retrieval; only the question and selected evidence are sent for answer generation.
+
 ---
 
 ## Trust & Security Guarantees
