@@ -229,6 +229,19 @@ LLMs frequently hallucinate page numbers, section titles, and source quotations 
 - **Memory-Only Access Tokens:** Access tokens reside exclusively in React state (never `localStorage` or `sessionStorage`), protecting against XSS token theft. Session renewal uses a rotating HttpOnly, SameSite refresh cookie with SHA-256 token-family reuse detection.
 - **Fail-Closed Rate Limiting:** Sliding-window rate limits run via atomic Redis Lua scripts. If Redis is unreachable, the system fails closed (HTTP 503) rather than allowing unmetered LLM calls.
 
+### Security control map
+
+| Boundary | Control in the application | Operator responsibility |
+|---|---|---|
+| Account credentials | Password hashing, short-lived access JWT, rotating HttpOnly refresh cookie | Protect signing secrets and configure secure HTTPS cookies |
+| Document ownership | Server-side ownership checks and per-user vector filters | Keep service credentials private and qualify cross-user access behavior in staging |
+| Uploaded files | Private storage abstraction and authenticated download route | Configure private bucket policy, encryption, retention, and credential scope |
+| Public network | Production overlay exposes Caddy as the public edge | Restrict host firewall and verify actual provider firewall and published ports |
+| AI provider | Backend sends bounded retrieved context to Gemini | Review provider terms; do not assume local embeddings mean all AI processing stays local |
+| Operations access | Metrics token and loopback-bound observability ports | Rotate credentials, restrict dashboard access, and rehearse incident response |
+
+This is a practical boundary map, not a certification or penetration-test report. The system has not had an independent third-party security audit.
+
 ---
 
 ## Quick Start
