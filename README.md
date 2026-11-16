@@ -376,6 +376,21 @@ Do not use the local `.env.example` as a production configuration. Use the full 
 
 Configure GitHub environments, host SSH credentials, image registry access, protected production reviewers, and smoke-test credentials as documented in the runbook. Workflow files are in [`.github/workflows`](.github/workflows).
 
+```mermaid
+flowchart LR
+    PR[Pull request] --> CI[Lint, typecheck, tests, build, security checks]
+    CI --> IMG[Commit-pinned images]
+    IMG --> STG[Staging deployment]
+    STG --> QUAL[Live qualification + restore rehearsal]
+    QUAL -->|approved release| GATE[Protected production approval]
+    GATE --> PROD[Production deployment + smoke checks]
+    PROD --> OBS[24-hour observation + closeout]
+    QUAL -->|issue found| FIX[Fix, rebuild, and requalify]
+    FIX --> CI
+```
+
+The release gate is evidence-based: passing CI builds the candidate, while staging qualification and protected approval determine whether it can proceed to production.
+
 ---
 
 ## Observability & Recovery
