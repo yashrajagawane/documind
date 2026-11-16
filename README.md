@@ -371,6 +371,20 @@ chmod 600 .env.production
 python scripts/validate_production_config.py --env-file .env.production
 ```
 
+For a release candidate, set the two image variables to the exact GHCR images tagged with the same full Git SHA, then run the stronger preflight. It validates production settings, immutable image tags, and the effective Compose port exposure before deployment:
+
+```bash
+export DOCUMIND_BACKEND_IMAGE=ghcr.io/yashrajagawane/documind-backend:$GIT_SHA
+export DOCUMIND_FRONTEND_IMAGE=ghcr.io/yashrajagawane/documind-frontend:$GIT_SHA
+
+python scripts/production_preflight.py \
+  --env-file .env.production \
+  --backend-image "$DOCUMIND_BACKEND_IMAGE" \
+  --frontend-image "$DOCUMIND_FRONTEND_IMAGE"
+```
+
+`GIT_SHA` must contain the full 40-character commit SHA. The preflight requires Docker Compose and valid production values; it does not deploy the release or substitute for staging qualification.
+
 Do not use the local `.env.example` as a production configuration. Use the full step-by-step instructions in [Production Deployment Runbook](docs/DEPLOYMENT-PRODUCTION.md), including host setup, firewall rules, qualification, rollback, and secret provisioning.
 
 ### Automated release path
