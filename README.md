@@ -335,6 +335,13 @@ docker compose exec backend alembic current
 
 The API's `/api/v1/health` endpoint checks that the process responds. `/api/v1/ready` also checks PostgreSQL and Redis and should be used as the readiness signal. A document may need time to pass through parsing, chunking, and indexing; poll its document status before retrying.
 
+| Signal | What it tells you | Expected use |
+|---|---|---|
+| `/api/v1/health` | API process can answer a request | Liveness probe and quick endpoint check |
+| `/api/v1/ready` | API plus PostgreSQL and Redis are reachable | Readiness check before sending application traffic |
+| `/api/v1/metrics` | Operational counters and histograms are available | Prometheus scrape using `X-Metrics-Token` |
+| Compose service health | Role-specific container checks for API, frontend, worker, scheduler, and dependencies | Host-level triage alongside service logs |
+
 ### Common symptoms
 
 | Symptom | First checks |
