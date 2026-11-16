@@ -83,6 +83,23 @@ Most document Q&A tools treat documents as unstructured blobs of text: they stri
 
 DocuMind is designed for private, single-host deployments and portfolio-scale use. Before treating it as a production service, complete the live qualification steps described in the deployment runbook and status section below.
 
+### Who it is for
+
+- **Researchers and analysts** who need to inspect lengthy reports and trace answers back to source sections.
+- **Builders and teams** evaluating a self-hosted document parsing and retrieval stack.
+- **Developers** who want a reference implementation for asynchronous ingestion, scoped retrieval, and citation integrity.
+
+### Design promises
+
+| Promise | How the system supports it |
+|---|---|
+| Answers should be inspectable | Responses include citation metadata resolved from retrieved chunks |
+| Data access should be scoped | Ownership checks apply at the API and vector-query boundary |
+| Parsing should be recoverable | PostgreSQL job state, Celery delivery, leases, and scheduled reconciliation cooperate to recover stale work |
+| Derived search data should be replaceable | PostgreSQL and stored parsed artifacts can be used to rebuild the Qdrant index |
+
+These are implementation goals and controls, not a guarantee of perfect extraction, answer accuracy, or uninterrupted availability. Verify important source material directly in the document preview.
+
 ---
 
 ## Product Workspace
