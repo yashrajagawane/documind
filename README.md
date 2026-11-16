@@ -516,9 +516,15 @@ DOC_ID=$(curl --fail --silent --show-error "$API/documents" \
   -F 'file=@./sample.pdf' \
   | jq -r '.id')
 
-# Poll status until it is ready, then request grounded answers.
+# Check processing state before making a preview or chat request.
 curl --fail --silent --show-error "$API/documents/$DOC_ID" \
   -H "Authorization: Bearer $TOKEN"
+
+# Once the response reports status "ready", ask a grounded question.
+curl --fail --silent --show-error -X POST "$API/documents/$DOC_ID/chat" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"question":"What is the main conclusion of this document?"}'
 ```
 
 Registration sets a refresh cookie as well as returning the access token. For browser clients, let the application manage cookie credentials and token lifecycle; avoid storing access tokens in browser persistent storage.
