@@ -17,11 +17,12 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white)](docker-compose.yml)
 [![Qdrant](https://img.shields.io/badge/Qdrant-1.15.5-DC2626?style=flat-square)](docker-compose.yml)
 [![Celery](https://img.shields.io/badge/Celery-5.6.3-37814A?style=flat-square&logo=celery&logoColor=white)](backend/pyproject.toml)
+[![CI](https://github.com/yashrajagawane/documind/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/yashrajagawane/documind/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-6366f1?style=flat-square)](LICENSE)
 
 <br/>
 
-[Quick Start](#quick-start) &middot; [Product Views](#product-workspace) &middot; [Workflow](#processing-workflow) &middot; [Architecture](#system-architecture) &middot; [Trust & Security](#trust--security-guarantees) &middot; [Tech Stack](#essential-technology-stack) &middot; [Documentation](#documentation-index)
+[Get Started](#quick-start) &middot; [Capabilities](#what-is-documind) &middot; [Architecture](#system-architecture) &middot; [Security](#trust--security-guarantees) &middot; [Deploy](#production-deployment) &middot; [Operations](#observability--recovery) &middot; [Docs](#documentation-index)
 
 </div>
 
