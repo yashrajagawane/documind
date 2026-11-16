@@ -149,6 +149,17 @@ Every uploaded document moves through a recoverable, state-machine pipeline back
 
 The default upload cap is 25 MB. Parsing quality depends on the source file; check the structural preview and tables before relying on an answer or export. For file validation details and configurable limits, see [Configuration Reference](docs/CONFIGURATION.md).
 
+### Processing lifecycle
+
+| State | Meaning | Next action |
+|---|---|---|
+| `uploaded` / `queued` | File is stored and waiting for a worker | The worker claims the queued job |
+| `processing` / `extracting` / `chunking` / `indexing` | Parsing and indexing stages are in progress | Poll document status; the UI surfaces current progress |
+| `ready` | Parsed artifact is available and the document can be previewed or queried | Inspect the preview; use chat and exports |
+| `failed` | Processing exhausted or encountered a non-recoverable error | Review the error, correct the source/configuration if needed, then retry |
+
+The worker uses a bounded attempt policy. A retry requeues a failed document through the API; repeated rapid retries do not repair invalid input or a missing dependency. See the [processing architecture](docs/ARCHITECTURE.md) for leases, recovery, and job ownership details.
+
 ---
 
 ## System Architecture
