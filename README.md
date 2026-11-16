@@ -497,6 +497,32 @@ curl --fail http://localhost:8000/api/v1/health
 
 See the [complete API reference](docs/API.md) for request schemas, response examples, authentication details, and error codes. Use `/ready` for dependency readiness; `/health` is a basic liveness check.
 
+### Minimal authenticated API flow
+
+The example below uses `jq` to extract the access token. Use a disposable local account and a non-sensitive sample document.
+
+```bash
+API=http://localhost:8000/api/v1
+
+# Register and capture the short-lived access token.
+TOKEN=$(curl --fail --silent --show-error "$API/auth/register" \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"reader@example.test","password":"use-a-long-local-test-password"}' \
+  | jq -r '.access_token')
+
+# Upload a supported sample; the API returns its document record and ID.
+DOC_ID=$(curl --fail --silent --show-error "$API/documents" \
+  -H "Authorization: Bearer $TOKEN" \
+  -F 'file=@./sample.pdf' \
+  | jq -r '.id')
+
+# Poll status until it is ready, then request grounded answers.
+curl --fail --silent --show-error "$API/documents/$DOC_ID" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Registration sets a refresh cookie as well as returning the access token. For browser clients, let the application manage cookie credentials and token lifecycle; avoid storing access tokens in browser persistent storage.
+
 ---
 
 ## Configuration & Secrets
