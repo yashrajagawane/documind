@@ -137,6 +137,18 @@ Every uploaded document moves through a recoverable, state-machine pipeline back
 4. **Filtered Vector Search** — Upserts points to Qdrant collection `documind_chunks`. Query execution enforces strict tenant payload filters and rejects evidence below a relevance score of `0.35`.
 5. **Grounded Answer Synthesis** — Formulates answers via Google Gemini 3.8 Flash inside explicit evidence fences. Citations are derived server-side from verified vector results.
 
+### Supported file formats
+
+| Format | Typical content | Practical note |
+|---|---|---|
+| PDF | Text, page layout, tables, and scanned pages | Scanned PDFs depend on OCR quality and may need more worker memory |
+| DOCX | Headings, paragraphs, and tables | Complex page styling is represented as extracted content, not reproduced as a Word layout |
+| XLSX | Workbook and sheet content | Validate important formulas and multi-sheet relationships in the preview |
+| PPTX | Slide text and structure | Visual relationships and image-only text may not be fully represented in extracted text |
+| TXT, CSV, Markdown | Plain text, rows, and Markdown structure | Best suited to text-first files with consistent encoding and delimiters |
+
+The default upload cap is 25 MB. Parsing quality depends on the source file; check the structural preview and tables before relying on an answer or export. For file validation details and configurable limits, see [Configuration Reference](docs/CONFIGURATION.md).
+
 ---
 
 ## System Architecture
