@@ -428,6 +428,15 @@ Operational assets include:
 - `infra/systemd/` — example systemd service/timer assets for scheduled backup execution.
 - `infra/monitoring/` — Prometheus scraping, alert rules, Alertmanager configuration, and Grafana provisioning.
 
+### Recovery targets and evidence
+
+| Objective | Initial target | Evidence needed to accept it |
+|---|---:|---|
+| Recovery point objective (RPO) | 24 hours | Confirm backup schedule, successful encrypted object upload, and restore point coverage |
+| Recovery time objective (RTO) | 8 hours | Time a disposable restore and service recovery rehearsal end to end |
+
+These are recorded planning targets, not measured service guarantees. Record actual restore duration, data verification, and any gaps during staging qualification; revise the targets if the chosen host or storage service cannot meet them.
+
 Record backup retention, encryption key custody, restore duration, and the result of a rehearsal in the deployment record. Follow the [production runbook](docs/DEPLOYMENT-PRODUCTION.md) for exact host commands and the [production launch report](docs/PRODUCTION-LAUNCH-REPORT.md) for sign-off evidence.
 
 ---
