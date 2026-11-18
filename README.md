@@ -291,6 +291,15 @@ GEMINI_API_KEY=your_gemini_api_key_here
 docker compose up --build -d
 ```
 
+Check startup before opening the UI:
+
+```bash
+docker compose ps
+curl --fail http://localhost:8000/api/v1/ready
+```
+
+The first build and model initialization can take several minutes. If readiness does not pass, inspect `docker compose logs --tail=100 backend worker` and resolve the reported dependency or resource issue before uploading a sample.
+
 Docker Compose boots seven coordinated services:
 - `postgres` — Relational database on port `5432`
 - `redis` — Celery broker and rate limit store on port `6379`
