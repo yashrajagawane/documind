@@ -432,9 +432,10 @@ chmod 600 .env.production
 python scripts/validate_production_config.py --env-file .env.production
 ```
 
-For a release candidate, set the two image variables to the exact GHCR images tagged with the same full Git SHA, then run the stronger preflight. It validates production settings, immutable image tags, and the effective Compose port exposure before deployment:
+Check out the release candidate commit first. Set `GIT_SHA` to that full commit SHA and use the matching GHCR images, then run the stronger preflight. It validates production settings, immutable image tags, and the effective Compose port exposure before deployment:
 
 ```bash
+GIT_SHA=$(git rev-parse HEAD)
 export DOCUMIND_BACKEND_IMAGE=ghcr.io/yashrajagawane/documind-backend:$GIT_SHA
 export DOCUMIND_FRONTEND_IMAGE=ghcr.io/yashrajagawane/documind-frontend:$GIT_SHA
 
