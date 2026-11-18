@@ -597,6 +597,18 @@ curl --fail http://localhost:8000/api/v1/health
 
 See the [complete API reference](docs/API.md) for request schemas, response examples, authentication details, and error codes. Use `/ready` for dependency readiness; `/health` is a basic liveness check.
 
+### Client handling guide
+
+| Response | Meaning | Suggested client action |
+|---|---|---|
+| `401 Unauthorized` | Access token is absent, invalid, or expired | Attempt the refresh-cookie flow once, then return the user to sign-in |
+| `404 Not Found` | Resource is missing or not owned by the current account | Show a generic unavailable message; do not probe guessed IDs |
+| `409 Conflict` | Requested operation is not valid for the document's current state | Refresh document state and retry only when the state permits it |
+| `413 Payload Too Large` / `415 Unsupported Media Type` | Upload exceeds the configured cap or uses a disallowed format | Explain the upload limit and supported formats before retry |
+| `429 Too Many Requests` / `503 Service Unavailable` | Rate limit or required dependency is unavailable | Back off and show a recoverable error; avoid rapid retry loops |
+
+The API returns structured error details; avoid displaying internal traces or logging tokens in frontend telemetry.
+
 ### Minimal authenticated API flow
 
 The example below uses `jq` to extract the access token. Use a disposable local account and a non-sensitive sample document.
