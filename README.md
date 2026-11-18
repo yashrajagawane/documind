@@ -316,6 +316,16 @@ To verify deployment integrity, run the authenticated smoke test:
 python scripts/smoke_test.py
 ```
 
+### Your first document
+
+1. Open the workspace and create a local account.
+2. Upload a small, non-sensitive sample in one of the supported formats.
+3. Wait for the status to become `ready`; inspect the parsed preview and any extracted tables.
+4. Ask a question whose answer appears in the document. Review the returned citation against the source.
+5. Export the parsed content or remove the sample document when finished.
+
+The first run may take longer while containers and the embedding model are initialized. Chat requires `GEMINI_API_KEY`; the rest of the local document flow can be explored without it.
+
 ### Stop, Inspect, and Reset
 
 ```bash
