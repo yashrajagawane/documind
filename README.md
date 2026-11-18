@@ -258,6 +258,8 @@ This is a practical boundary map, not a certification or penetration-test report
 
 Launch the complete 7-service DocuMind stack locally with Docker Compose.
 
+> **Local-only stack:** `docker-compose.yml` publishes service ports for development convenience. Run it only on a trusted machine/network; do not expose it directly to the internet or process real private documents. The production overlay removes public data-service ports and routes traffic through Caddy.
+
 ### Prerequisites
 
 - [Docker Desktop](https://www.docker.com/) (version 24+) and Docker Compose v2.
