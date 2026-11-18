@@ -720,17 +720,19 @@ Check the document status and backend/worker/scheduler logs, verify available me
 Contributions are welcome! Please follow these steps for local development:
 
 ```bash
-# Backend linting and unit testing
+# Backend static checks and tests
 cd backend
-pip install -e ".[dev]"
+python -m pip install -e ".[dev]"
 ruff check .
 pytest
 
-# Frontend typechecking and unit testing
+# Frontend quality checks and production build
 cd ../frontend
-npm install
+npm ci
+npm run lint
 npm run typecheck
 npm test
+npm run build
 ```
 
 Please ensure all tests pass and code compiles before submitting a pull request. Refer to the [Architecture Decision Records](docs/ARCHITECTURE-DECISIONS.md) before proposing significant architectural changes.
