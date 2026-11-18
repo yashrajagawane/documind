@@ -126,8 +126,7 @@ The DocuMind workspace is a dark-mode Next.js application featuring an interacti
 
 </div>
 
-> [!NOTE]
-> **Screenshot Status:** Genuine product screenshots require a running local stack. When launching locally via `docker compose up`, capture views at `http://localhost:3000` to populate `docs/assets/` (`workspace-library.png`, `workspace-preview.png`, `workspace-chat.png`).
+> **Screenshots:** Product UI screenshots are not currently included. The SVGs in `docs/assets/` illustrate the workflow, architecture, and citation model. When adding UI screenshots, use synthetic documents and remove personal or account data before committing them.
 
 ---
 
