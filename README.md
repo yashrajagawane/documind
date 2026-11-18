@@ -401,6 +401,18 @@ The supported production baseline is a single Linux host running Docker Compose,
 
 Before pointing real users or private documents at a host, prepare DNS and firewall rules, private encrypted object storage, independent staging resources, monitoring credentials, and a verified backup plan. Production requires private S3-compatible storage, secure refresh cookies, an HTTPS-only CORS origin, non-template secrets, and an authenticated Qdrant service.
 
+### Host planning notes
+
+| Resource | Planning guidance |
+|---|---|
+| Worker memory | Allocate at least 4 GB to the Celery worker for intensive Docling parsing workloads |
+| Persistent disk | Budget separately for PostgreSQL, Redis, Qdrant, model cache, Caddy state, and temporary backup space |
+| Object storage | Use a private S3-compatible bucket with scoped credentials, server-side encryption, and a tested recovery path |
+| Network ingress | Publish only SSH administration as restricted by policy and HTTPS ingress on ports 80/443; keep data services private |
+| External egress | Allow access to Gemini when chat is enabled and to the model source when model artifacts need to be fetched |
+
+These are service-planning notes rather than a universal instance size. Measure CPU, memory, disk growth, and restore time with representative synthetic documents in staging before sizing production.
+
 The repository includes a production environment template and a validation command:
 
 ```bash
