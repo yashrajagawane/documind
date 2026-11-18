@@ -683,20 +683,13 @@ DocuMind is an actively developed open-source project with deployment and operat
 
 The implementation plan and evidence templates live in the [deployment completion plan](docs/DEPLOYMENT-COMPLETION-PLAN.md), [staging qualification report](docs/STAGING-QUALIFICATION-REPORT.md), and [production launch report](docs/PRODUCTION-LAUNCH-REPORT.md). Do not treat the repository checklist or CI result as production approval.
 
-Current operational and product limitations:
+Operational and product limitations that remain relevant regardless of phase status:
 
-- **Deployment Qualification** — Phase 0 decisions and the Phase 1 repository baseline are complete; live staging qualification, provider-specific firewall/storage validation, and restore rehearsal remain outstanding. See the [deployment decision](docs/DEPLOYMENT-DECISION.md) and [production runbook](docs/DEPLOYMENT-PRODUCTION.md).
-- **Release Automation** — CI builds commit-pinned images and GitHub Actions includes protected staging/production deployment workflows. Configure the repository environments and host secrets using the [production runbook](docs/DEPLOYMENT-PRODUCTION.md); no live environment has been configured yet.
-- **Staging Qualification** — The release workflow runs authenticated health checks after staging deploy; the optional document lifecycle smoke run and RAG report require a staging host and test credentials. Use the [qualification report](docs/STAGING-QUALIFICATION-REPORT.md) to record evidence.
-- **Operations and Recovery** — Repository tooling now includes Prometheus/Grafana, alert rules, encrypted PostgreSQL backups, disposable restore, and Qdrant rebuild. Live alert delivery and restore rehearsal remain pending; see the [production runbook](docs/DEPLOYMENT-PRODUCTION.md).
-- **Production Launch** — Protected deployment runs authenticated smoke checks and saves a sanitized release record. The live launch and 24-hour observation window have not been completed.
-
-- **S3 Storage Live Qualification** — The S3 storage adapter is fully implemented with Boto3 and AES-256 SSE, but requires qualification in your target production environment.
-- **Worker Memory Footprint** — IBM Docling layout models require at least 4 GB of RAM allocated to the Celery worker container during intensive parsing tasks.
-- **Monitoring Dashboards** — Prometheus metrics are exported at `/api/v1/metrics`, but production Grafana dashboards and alerting rules are deployment-specific.
-- **Security Audit** — While designed with defensive security controls (JWT in memory, CSRF/XSS mitigations, fail-closed rate limits), DocuMind has not undergone an independent third-party commercial penetration audit.
-- **External Model Processing** — Embeddings are computed locally, but grounded chat sends retrieved evidence and the user question to the configured Gemini API. Review the provider's data handling terms and configure the service accordingly before processing sensitive documents.
-- **Single-Host Baseline** — The production Compose path is a single-host deployment, not a highly available multi-region architecture. PostgreSQL, Redis, and Qdrant need separately managed persistence, monitoring, and capacity planning.
+- **Resource profile** — Intensive Docling parsing needs at least 4 GB RAM allocated to the worker; size using representative workloads rather than a generic host recommendation.
+- **External model processing** — Embeddings run locally, while grounded chat sends the user question and retrieved evidence to Gemini. Review provider data-handling terms before processing sensitive documents.
+- **Single-host baseline** — The production Compose path is not a highly available or multi-region architecture; capacity, persistence, and monitoring need operator planning.
+- **Independent security review** — The project has not undergone an independent third-party penetration test or commercial security audit.
+- **Provider qualification** — The S3 adapter, alert delivery, host firewall, and restore path still require live qualification in the selected environment.
 
 ### Frequently asked questions
 
