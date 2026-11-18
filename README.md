@@ -546,7 +546,14 @@ Testing & Tooling      Pytest · Vitest · Testing Library · Docker Compose · 
 
 ## Local Development
 
-Docker Compose is the simplest way to run the whole application. For faster iteration, you can also run the frontend and backend from their own folders while keeping PostgreSQL, Redis, and Qdrant in Compose.
+Docker Compose is the recommended way to run the whole application. The native development option below runs only PostgreSQL and Qdrant in Compose, then starts the backend and frontend as local processes. Do not start the full Compose stack and native processes at the same time; both modes use ports `3000` and `8000`.
+
+Start the infrastructure dependencies from the repository root:
+
+```bash
+cp .env.example .env
+docker compose up -d postgres qdrant
+```
 
 ### Backend
 
@@ -557,11 +564,22 @@ cd backend
 python -m venv .venv
 # Activate the virtual environment for your shell, then:
 python -m pip install -e ".[dev,processing,indexing,rag]"
+cp ../.env.example .env
 ```
 
-Set the environment values from the root `.env.example` for your local services, then run:
+In `backend/.env`, use the PostgreSQL password set in the root `.env` and set these local-process values:
+
+```env
+DATABASE_URL=postgresql+asyncpg://documind:<your-postgres-password>@localhost:5432/documind
+JOB_QUEUE_BACKEND=inprocess
+QDRANT_URL=http://localhost:6333
+RATE_LIMIT_BACKEND=memory
+```
+
+Run migrations once, then start the API:
 
 ```bash
+alembic upgrade head
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -575,7 +593,7 @@ npm ci
 npm run dev
 ```
 
-The development server opens at `http://localhost:3000`. For complete service wiring, migrations, background jobs, and document parsing, prefer the [Docker Compose quick start](#quick-start).
+The development server opens at `http://localhost:3000`; the API client defaults to `http://localhost:8000/api/v1`. With `JOB_QUEUE_BACKEND=inprocess`, processing jobs run inside the API process, so this mode is for development only. For durable worker processing and the complete service set, use the [Docker Compose quick start](#quick-start).
 
 ---
 
