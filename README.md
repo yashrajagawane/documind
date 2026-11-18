@@ -30,6 +30,16 @@
 
 > **Project status:** The application, deployment automation, and operational tooling are implemented. A live production launch is **not yet qualified**: staging verification, provider-specific checks, and a restore rehearsal still need to be completed. See [Project Status & Limitations](#project-status--limitations) before deploying with real documents.
 
+### Choose your path
+
+| If you want to… | Start here |
+|---|---|
+| Try the complete application locally | [Quick Start](#quick-start) |
+| Change the frontend or backend | [Local Development](#local-development) and [Contributing](#contributing--developer-workflow) |
+| Integrate with the service | [API at a Glance](#api-at-a-glance) and [API Reference](docs/API.md) |
+| Operate a hosted instance | [Production Deployment](#production-deployment) and [Operations & Troubleshooting](#operations--troubleshooting) |
+| Assess current release readiness | [Project Status & Limitations](#project-status--limitations) |
+
 <details>
 <summary><strong>Contents</strong></summary>
 
