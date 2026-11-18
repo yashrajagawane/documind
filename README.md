@@ -383,6 +383,14 @@ The API's `/api/v1/health` endpoint checks that the process responds. `/api/v1/r
 | Chat returns no evidence | Rephrase around document wording, verify indexing completed, and review `RETRIEVAL_MIN_SCORE` |
 | Production validation fails | Run `scripts/validate_production_config.py` against the selected environment file and fix every reported issue |
 
+### First-response checklist
+
+1. Note the time, affected flow, environment, and any API `request_id` returned in an error.
+2. Capture service status and the relevant backend, worker, scheduler, and proxy logs.
+3. Check readiness and dependent services before retrying an upload, deletion, migration, or deployment.
+4. Preserve logs and backup identifiers; do not remove Docker volumes or re-run migrations as a diagnostic shortcut.
+5. Follow the release rollback or recovery runbook if data integrity, authentication, or cross-user isolation may be affected.
+
 Avoid disabling ownership checks, CORS validation, rate limiting, or network isolation to work around an error. For deeper procedures, see the [production runbook](docs/DEPLOYMENT-PRODUCTION.md) and [configuration reference](docs/CONFIGURATION.md).
 
 ---
