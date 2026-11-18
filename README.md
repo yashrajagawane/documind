@@ -296,6 +296,12 @@ GEMINI_API_KEY=your_gemini_api_key_here
 docker compose up --build -d
 ```
 
+Apply the database schema before creating an account. The production overlay has a one-shot migration service; the local development Compose file leaves migrations explicit:
+
+```bash
+docker compose exec backend alembic upgrade head
+```
+
 Check startup before opening the UI:
 
 ```bash
