@@ -694,6 +694,8 @@ curl --fail --silent --show-error -X POST "$API/documents/$DOC_ID/chat" \
 
 Registration sets a refresh cookie as well as returning the access token. For browser clients, let the application manage cookie credentials and token lifecycle; avoid storing access tokens in browser persistent storage.
 
+<p align="right"><a href="#documind">↑ Back to top</a></p>
+
 ---
 
 ## Configuration & Secrets
@@ -712,6 +714,8 @@ Start from [`.env.example`](.env.example) for local Compose and [`.env.productio
 | `METRICS_TOKEN` | Empty | Set a strong value before enabling Prometheus scraping |
 
 The complete variable list, defaults, and validation rules are in [Configuration Reference](docs/CONFIGURATION.md). Never paste secrets into issue reports, terminal transcripts, release records, or screenshots. `GEMINI_API_KEY` is optional for local parsing and indexing, but grounded chat requires it.
+
+<p align="right"><a href="#documind">↑ Back to top</a></p>
 
 ---
 
