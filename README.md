@@ -8,6 +8,8 @@
 
 **Private Documents. Structural Understanding. Verifiable Answers.**
 
+<img src="docs/assets/processing-loop.svg" alt="Animated flow from document upload to structure-aware parsing to cited answers" width="90%"/>
+
 *An open-source workspace that turns complex documents into structured, searchable knowledge — with layout-aware parsing, local semantic vector search, and grounded answers backed by server-verified citations.*
 
 <br/>
