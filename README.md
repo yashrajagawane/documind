@@ -521,6 +521,8 @@ These are recorded planning targets, not measured service guarantees. Record act
 
 Record backup retention, encryption key custody, restore duration, and the result of a rehearsal in the deployment record. Follow the [production runbook](docs/DEPLOYMENT-PRODUCTION.md) for exact host commands and the [production launch report](docs/PRODUCTION-LAUNCH-REPORT.md) for sign-off evidence.
 
+<p align="right"><a href="#documind">↑ Back to top</a></p>
+
 ---
 
 ## Repository Guide
@@ -550,6 +552,8 @@ Record backup retention, encryption key custody, restore duration, and the resul
 | `qdrant` | Semantic vector search index | Rebuildable derived index |
 | `redis` | Queue broker and distributed rate limit state | Operational state, configured separately from PostgreSQL |
 | `proxy` | TLS termination and routing in production | Caddy certificate and configuration volumes |
+
+<p align="right"><a href="#documind">↑ Back to top</a></p>
 
 ---
 
