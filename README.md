@@ -1,5 +1,7 @@
 <div align="center">
 
+<h1>DocuMind</h1>
+
 <img src="docs/assets/hero.svg" alt="DocuMind - Document Intelligence Pipeline: Ingest, Parse, Embed, Retrieve, Answer" width="100%"/>
 
 <br/>
