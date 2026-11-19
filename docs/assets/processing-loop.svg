@@ -2,6 +2,9 @@
   <title id="title">DocuMind document processing loop</title>
   <desc id="description">A subtle animated line connects upload, structure, and grounded answer stages.</desc>
   <defs>
+    <style>
+      @media (prefers-reduced-motion: reduce) { animate { display: none; } }
+    </style>
     <linearGradient id="line" x1="0" x2="1">
       <stop offset="0" stop-color="#818cf8"/>
       <stop offset="1" stop-color="#2dd4bf"/>
