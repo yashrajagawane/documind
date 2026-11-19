@@ -119,6 +119,8 @@ DocuMind is designed for private, single-host deployments and portfolio-scale us
 
 These are implementation goals and controls, not a guarantee of perfect extraction, answer accuracy, or uninterrupted availability. Verify important source material directly in the document preview.
 
+<p align="right"><a href="#documind">↑ Back to top</a></p>
+
 ---
 
 ## Product Workspace
@@ -136,6 +138,8 @@ The DocuMind workspace is a dark-mode Next.js application featuring an interacti
 </div>
 
 > **Screenshots:** Product UI screenshots are not currently included. The SVGs in `docs/assets/` illustrate the workflow, architecture, and citation model. When adding UI screenshots, use synthetic documents and remove personal or account data before committing them.
+
+<p align="right"><a href="#documind">↑ Back to top</a></p>
 
 ---
 
