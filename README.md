@@ -824,8 +824,12 @@ Security workflows add CodeQL analysis, dependency review, and secret scanning. 
 - Update relevant docs when configuration, APIs, deployment steps, or recovery behavior change.
 - Include a concise summary and verification evidence in the pull request.
 
+<p align="right"><a href="#documind">↑ Back to top</a></p>
+
 ---
 
 ## License
 
 DocuMind is open-source software licensed under the [MIT License](LICENSE).
+
+<p align="right"><a href="#documind">↑ Back to top</a></p>
