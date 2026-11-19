@@ -10,6 +10,8 @@
 
 <img src="docs/assets/processing-loop.svg" alt="Animated flow from document upload to structure-aware parsing to cited answers" width="90%"/>
 
+*The self-hosted illustration uses a gentle loop, includes a static visual fallback, and honors reduced-motion preferences in viewers that support SVG motion preferences.*
+
 *An open-source workspace that turns complex documents into structured, searchable knowledge — with layout-aware parsing, local semantic vector search, and grounded answers backed by server-verified citations.*
 
 <br/>
