@@ -1,6 +1,6 @@
-<div align="center">
+# DocuMind
 
-<h1>DocuMind</h1>
+<div align="center">
 
 <img src="docs/assets/hero.svg" alt="DocuMind - Document Intelligence Pipeline: Ingest, Parse, Embed, Retrieve, Answer" width="100%"/>
 
