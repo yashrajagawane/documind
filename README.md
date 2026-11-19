@@ -420,6 +420,8 @@ The API's `/api/v1/health` endpoint checks that the process responds. `/api/v1/r
 
 Avoid disabling ownership checks, CORS validation, rate limiting, or network isolation to work around an error. For deeper procedures, see the [production runbook](docs/DEPLOYMENT-PRODUCTION.md) and [configuration reference](docs/CONFIGURATION.md).
 
+<p align="right"><a href="#documind">↑ Back to top</a></p>
+
 ---
 
 ## Production Deployment
@@ -489,6 +491,8 @@ flowchart LR
 ```
 
 The release gate is evidence-based: passing CI builds the candidate, while staging qualification and protected approval determine whether it can proceed to production.
+
+<p align="right"><a href="#documind">↑ Back to top</a></p>
 
 ---
 
