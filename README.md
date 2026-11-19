@@ -182,6 +182,8 @@ The default upload cap is 25 MB. Parsing quality depends on the source file; che
 
 The worker uses a bounded attempt policy. A retry requeues a failed document through the API; repeated rapid retries do not repair invalid input or a missing dependency. See the [processing architecture](docs/ARCHITECTURE.md) for leases, recovery, and job ownership details.
 
+<p align="right"><a href="#documind">↑ Back to top</a></p>
+
 ---
 
 ## System Architecture
@@ -223,6 +225,8 @@ flowchart LR
 ```
 
 The browser talks to the web/API edge only. Data stores and the worker are internal services in the production Compose network. Gemini is an outbound provider call made by the backend after retrieval; only the question and selected evidence are sent for answer generation.
+
+<p align="right"><a href="#documind">↑ Back to top</a></p>
 
 ---
 
