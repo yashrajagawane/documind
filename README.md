@@ -567,6 +567,8 @@ Document AI & Search   IBM Docling 2.129 · Sentence Transformers (all-MiniLM-L6
 Testing & Tooling      Pytest · Vitest · Testing Library · Docker Compose · Ruff
 ```
 
+<p align="right"><a href="#documind">↑ Back to top</a></p>
+
 ---
 
 ## Local Development
@@ -619,6 +621,8 @@ npm run dev
 ```
 
 The development server opens at `http://localhost:3000`; the API client defaults to `http://localhost:8000/api/v1`. With `JOB_QUEUE_BACKEND=inprocess`, processing jobs run inside the API process, so this mode is for development only. For durable worker processing and the complete service set, use the [Docker Compose quick start](#quick-start).
+
+<p align="right"><a href="#documind">↑ Back to top</a></p>
 
 ---
 
