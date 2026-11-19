@@ -268,6 +268,8 @@ LLMs frequently hallucinate page numbers, section titles, and source quotations 
 
 This is a practical boundary map, not a certification or penetration-test report. The system has not had an independent third-party security audit.
 
+<p align="right"><a href="#documind">↑ Back to top</a></p>
+
 ---
 
 ## Quick Start
@@ -373,6 +375,8 @@ docker compose down --volumes
 ```
 
 The final command deletes local database, Qdrant, and uploaded-file data. Use it only when you intend to reset the development instance.
+
+<p align="right"><a href="#documind">↑ Back to top</a></p>
 
 ---
 
