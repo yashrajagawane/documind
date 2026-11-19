@@ -268,6 +268,16 @@ LLMs frequently hallucinate page numbers, section titles, and source quotations 
 
 This is a practical boundary map, not a certification or penetration-test report. The system has not had an independent third-party security audit.
 
+### Data handling summary
+
+| Data | Where it is handled | External processing or cleanup |
+|---|---|---|
+| Original document | Private local storage in development, or the configured private S3-compatible bucket | Deleting a document removes its stored object through the authenticated API |
+| Parsed content and lifecycle metadata | PostgreSQL | Included in PostgreSQL backup and restore procedures |
+| Embedding vectors and chunk payloads | Qdrant, filtered by account and document | Derived index can be rebuilt; document deletion removes that document's points |
+| Chat question and retrieved evidence | Sent from the backend to the configured Gemini API when chat is used | Review provider terms for your account and region before using sensitive data |
+| Access credentials | Access token in frontend memory; refresh token in an HttpOnly cookie | Never include tokens in logs, screenshots, issues, or shared API examples |
+
 <p align="right"><a href="#documind">↑ Back to top</a></p>
 
 ---
