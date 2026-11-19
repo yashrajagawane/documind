@@ -740,6 +740,8 @@ Detailed implementation guides, design records, and API contracts are available 
 | [Design System](docs/DESIGN.md) | Dark-mode design tokens, typography, component states, and accessibility standards |
 | [Project Roadmap](docs/ROADMAP.md) | Product direction and future capabilities; pair with Implementation Progress for current status |
 
+<p align="right"><a href="#documind">↑ Back to top</a></p>
+
 ---
 
 ## Project Status & Limitations
@@ -781,6 +783,8 @@ The documented baseline targets one host and one Compose deployment. Scaling req
 
 **Where should I start if a document fails?**
 Check the document status and backend/worker/scheduler logs, verify available memory and dependencies, then retry only after addressing the cause. See [Operations & Troubleshooting](#operations--troubleshooting).
+
+<p align="right"><a href="#documind">↑ Back to top</a></p>
 
 ---
 
